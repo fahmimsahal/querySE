@@ -1,0 +1,49 @@
+SELECT
+    a.level_3_full_code AS kode_kecamatan,
+    a.level_3_name      AS nama_kecamatan,
+    a.level_4_full_code AS kode_desa,
+    a.level_4_name      AS nama_desa,
+    COALESCE(NULLIF(TRIM(a.level_6_full_code), ''), a.level_5_full_code) AS kode_subsls,
+    a.level_5_name      AS nama_sls,
+    a.assignment_status_alias AS status_assignment,
+    a.mode              AS mode_pendataan,
+    a.current_user_fullname AS nama_petugas,
+    CASE
+        WHEN LOWER(TRIM(COALESCE(r.jenis_prelist, ''))) LIKE '%keluarga%' THEN 'KELUARGA'
+        WHEN TRIM(COALESCE(r.jenis_prelist, '')) <> ''                    THEN 'USAHA / BKU'
+        WHEN TRIM(COALESCE(r.nama_usaha_bang, '')) <> ''                  THEN 'USAHA / BKU'
+        WHEN TRIM(COALESCE(r.nama_kk, '')) <> ''                          THEN 'KELUARGA'
+        ELSE 'LAINNYA'
+    END AS jenis_assignment,
+    r.jenis_prelist         AS jenis_prelist,
+    r.ada_keluarga_label    AS keberadaan_keluarga,
+    r.ada_bang_usaha_label  AS keberadaan_bangunan_usaha,
+    r.no_bang               AS nomor_urut_bangunan,
+    COALESCE(
+        NULLIF(TRIM(r.nama_usaha_bang), ''),
+        NULLIF(TRIM(r.nama_kk), ''),
+        NULLIF(TRIM(r.nama_ak_lain), ''),
+        NULLIF(TRIM(r.nama_principal), ''),
+        NULLIF(TRIM(r.nama_lookup_umkm), ''),
+        NULLIF(TRIM(r.nama_usaha_prelist), ''),
+        NULLIF(TRIM(r.dtsen_nama_kk), ''),
+        '(kosong)'
+    ) AS nama_keluarga_usaha,
+    r.geotag_latitude   AS latitude,
+    r.geotag_longitude  AS longitude,
+    r.geotag_accuracy   AS akurasi_geotag,
+    r.jalan_domisili    AS alamat_nama_jalan,
+    r.kode_bang_value   AS kode_penggunaan_bangunan,
+    r.kode_bang_label   AS penggunaan_bangunan,
+    a.assignment_id     AS assignment_id,
+    CONCAT('https://fasih-sm.bps.go.id/app/assignment/', a.survey_period_id, '/', a.assignment_id) AS link_fasih
+FROM base_table_assignment a
+INNER JOIN root_table r
+    ON r.assignment_id = a.assignment_id
+WHERE a.level_2_full_code = '1811'          -- << EDIT kode kabupaten
+  AND a.is_active = '1'
+  AND UPPER(COALESCE(a.assignment_status_alias, '')) NOT IN ('OPEN', 'DRAFT')
+  AND NULLIF(TRIM(r.geotag_latitude), '')  IS NOT NULL
+  AND NULLIF(TRIM(r.geotag_longitude), '') IS NOT NULL
+ORDER BY a.assignment_id                    -- << JANGAN DIHAPUS: ini yang mencegah duplikat
+LIMIT 9000 OFFSET 0;                        -- << GANTI: 0, 9000, 18000, ... , 81000

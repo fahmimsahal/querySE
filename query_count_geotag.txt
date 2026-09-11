@@ -1,0 +1,19 @@
+-- ============================================================================
+-- COUNT PENDAMPING -- ASSIGNMENT DENGAN GEOTAG (SE2026)
+-- Filter IDENTIK dengan query detail geotag. Output: 1 angka.
+--
+-- Cara pakai:
+--   total_baris / 9000  -> dibulatkan ke atas = jumlah iterasi LIMIT/OFFSET
+--   contoh: 20.500 baris -> 3 iterasi (OFFSET 0, 9000, 18000)
+--
+-- Kalau kode kecamatan di query detail diganti, ganti juga di sini (1 tempat).
+-- ============================================================================
+SELECT COALESCE(SUM(1), 0) AS total_baris
+FROM tgr_fd68e454.base_table_assignment a
+INNER JOIN tgr_fd68e454.root_table r
+    ON r.assignment_id = a.assignment_id
+WHERE a.level_2_full_code = '1811'          -- << EDIT kode kabupaten
+  AND a.is_active = '1'
+  AND UPPER(COALESCE(a.assignment_status_alias, '')) NOT IN ('OPEN', 'DRAFT')
+  AND NULLIF(TRIM(r.geotag_latitude), '')  IS NOT NULL
+  AND NULLIF(TRIM(r.geotag_longitude), '') IS NOT NULL;
