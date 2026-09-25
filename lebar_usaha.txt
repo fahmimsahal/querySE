@@ -1,0 +1,610 @@
+-- =====================================================================
+-- DATASET : usaha — Usaha + Assignment (root_table + se2026_nested)
+-- SATUAN  : 1 baris = 1 usaha. Assignment tanpa usaha tetap 1 baris (kolom usaha kosong).
+-- Versi data: tiap tabel diambil versi terbarunya (MAX assignment_date_modified)
+-- per assignment -> tidak ada baris hilang, tidak dobel.
+-- =====================================================================
+-- ---------------------------------------------------------------------
+-- FORMAT FILE (dibaca userscript "Tarik Data Lebar SE2026"):
+--   -- @KUNCI  : kolom kunci penggabung, ikut di SETIAP grup query.
+--   -- @KOLOM  : satu baris = satu kolom (ekspresi + AS alias). Script memecahnya
+--                jadi grup berisi (25 - jumlah kunci) kolom. Baris diawali '--'
+--                diabaikan, jadi kolom bisa dinonaktifkan dengan menambah '-- '.
+--   -- @QUERY  : template query. /*KOLOM*/ diganti kunci + kolom grup,
+--                {{KAB}} dan {{KEC}} diganti kode wilayah dari popup.
+-- ATURAN: alias tidak boleh kembar; SELECT terluar tanpa GROUP BY/DISTINCT;
+--         ORDER BY terakhir harus unik & diikuti LIMIT 9000 OFFSET 0.
+-- ---------------------------------------------------------------------
+
+-- @KUNCI
+a.assignment_id AS `assignment_id`
+CONCAT('', n.index1) AS `index1`
+
+-- @KOLOM
+
+-- [IDENTITAS ASSIGNMENT]
+a.`level_3_full_code` AS `level_3_full_code`   -- kode kecamatan
+a.`level_3_name` AS `level_3_name`
+a.`level_4_full_code` AS `level_4_full_code`   -- kode desa
+a.`level_4_name` AS `level_4_name`
+a.`level_5_full_code` AS `level_5_full_code`   -- kode SLS
+a.`level_5_name` AS `level_5_name`
+a.`level_6_full_code` AS `level_6_full_code`   -- kode sub-SLS
+a.`level_6_name` AS `level_6_name`
+a.`assignment_status_alias` AS `assignment_status_alias`
+a.`mode` AS `mode`
+CASE WHEN UPPER(COALESCE(a.code_identity, '')) LIKE '%DTSEN%' THEN 'KELUARGA' WHEN TRIM(COALESCE(a.data6, '')) <> '' THEN 'USAHA PRELIST' ELSE 'TAMBAHAN LAPANGAN' END AS `kelompok_assignment`
+a.`data1` AS `data1`   -- nama prelist
+a.`data6` AS `data6`   -- skala / jenis prelist
+CONCAT('https://fasih-sm.bps.go.id/app/assignment/', a.survey_period_id, '/', a.assignment_id) AS `link_fasih`
+a.`assignment_date_modified` AS `versi_assignment`
+r.`assignment_date_modified` AS `versi_root`
+n.`assignment_date_modified` AS `versi_usaha`
+
+-- ===================== root_table (r.) =====================
+
+-- [PENGANTAR]
+r.`mulai` AS `mulai`   -- Waktu Mulai
+r.`kunjungan_1` AS `kunjungan_1`   -- Waktu Kunjungan I
+r.`catatan_1` AS `catatan_1`   -- Catatan Kunjungan I
+r.`kunjungan_2` AS `kunjungan_2`   -- Waktu Kunjungan II Waktu Kunjungan II Hanya Dapat Diisi Empat Jam sete…
+r.`catatan_2` AS `catatan_2`   -- Catatan Kunjungan II
+r.`kunjungan_3` AS `kunjungan_3`   -- Waktu Kunjungan III Waktu Kunjungan III Hanya Dapat Diisi Empat Jam se…
+r.`alasan_nr_label` AS `alasan_nr_label`   -- Alasan Nonrespon
+r.`alasan_nr_value` AS `alasan_nr_value`   -- Alasan Nonrespon
+r.`catatan_3` AS `catatan_3`   -- Catatan Kunjungan III
+r.`kunjungan_pml` AS `kunjungan_pml`   -- Waktu Kunjungan PML
+r.`geotag_pml_accuracy` AS `geotag_pml_accuracy`   -- Geotaging oleh PML
+r.`geotag_pml_latitude` AS `geotag_pml_latitude`   -- Geotaging oleh PML
+r.`geotag_pml_longitude` AS `geotag_pml_longitude`   -- Geotaging oleh PML
+r.`catatan_pml` AS `catatan_pml`   -- Catatan Kunjungan PML
+
+-- [IDENTITAS WILAYAH]
+r.`prov` AS `prov`   -- Provinsi
+r.`kab` AS `kab`   -- Kabupaten/Kota
+r.`kec` AS `kec`   -- Kecamatan
+r.`desa` AS `desa`   -- Desa/Kelurahan
+r.`ubah_wilayah_label` AS `ubah_wilayah_label`   -- Apakah Terdapat Perubahan Wilayah?
+r.`ubah_wilayah_value` AS `ubah_wilayah_value`   -- Apakah Terdapat Perubahan Wilayah?
+r.`kab_baru_label` AS `kab_baru_label`   -- Kabupaten/Kota
+r.`kab_baru_value` AS `kab_baru_value`   -- Kabupaten/Kota
+r.`kec_baru_label` AS `kec_baru_label`   -- Kecamatan
+r.`kec_baru_value` AS `kec_baru_value`   -- Kecamatan
+r.`desa_baru_label` AS `desa_baru_label`   -- Desa/Kelurahan
+r.`desa_baru_value` AS `desa_baru_value`   -- Desa/Kelurahan
+r.`klas_desa` AS `klas_desa`   -- Klasifikasi Desa/Kelurahan
+r.`kode_sls` AS `kode_sls`   -- Kode SLS/Non-SLS/Sub-SLS
+r.`nama_sls` AS `nama_sls`   -- Nama SLS/Non-SLS
+r.`ubah_sls_label` AS `ubah_sls_label`   -- Apakah mengalami perubahan SLS (pemekaran/penggabungan/perubahan nama/…
+r.`ubah_sls_value` AS `ubah_sls_value`   -- Apakah mengalami perubahan SLS (pemekaran/penggabungan/perubahan nama/…
+r.`nama_sls_lap` AS `nama_sls_lap`   -- Nama SLS/Non-SLS Lapangan
+r.`kodepos` AS `kodepos`   -- Kodepos
+r.`jalan_domisili_cawi` AS `jalan_domisili_cawi`   -- Nama Jalan/Gang/Komplek/Gedung/dll (Tuliskan dengan rinci)
+r.`nomor_domisili_cawi` AS `nomor_domisili_cawi`   -- Blok/Nomor Rumah (Jika tidak ada nomor rumah, tulis strip (-))
+r.`domisili_cawi_label` AS `domisili_cawi_label`   -- Apakah alamat di atas sesuai dengan alamat pada Kartu Keluarga?
+r.`domisili_cawi_value` AS `domisili_cawi_value`   -- Apakah alamat di atas sesuai dengan alamat pada Kartu Keluarga?
+
+-- [SE2026 - P]
+r.`jenis_prelist` AS `jenis_prelist`   -- Jenis Prelist
+r.`is_new_label` AS `is_new_label`   -- Tambah : Pilih jenis assignment yang akan ditambahkan
+r.`is_new_value` AS `is_new_value`   -- Tambah : Pilih jenis assignment yang akan ditambahkan
+r.`pilih_umkm_label` AS `pilih_umkm_label`   -- Daftar Usaha Non Prelist Pilih "Tidak Ditemukan" jika nama usaha tidak…
+r.`pilih_umkm_value` AS `pilih_umkm_value`   -- Daftar Usaha Non Prelist Pilih "Tidak Ditemukan" jika nama usaha tidak…
+r.`nama_lookup_umkm` AS `nama_lookup_umkm`   -- Nama dari Lookup
+r.`nama_usaha_bang` AS `nama_usaha_bang`   -- Nama Bangunan/ Usaha/ Perusahaan ket
+r.`no_kk` AS `no_kk`   -- Nomor KK ket
+r.`nik` AS `nik`   -- NIK ket
+r.`nama_kk` AS `nama_kk`   -- Nama Kepala Keluarga (KK) ket
+-- r.`htmlHasilPemadananNIK_p` AS `htmlHasilPemadananNIK_p`   -- NONAKTIF: tampilan HTML hasil cek NIK
+r.`nama_ak_lain` AS `nama_ak_lain`   -- Nama Anggota Keluarga Lainnya ket
+r.`alamat_lookup_umkm` AS `alamat_lookup_umkm`   -- Alamat dari lookup
+r.`jumlah_usaha_prelist` AS `jumlah_usaha_prelist`   -- Jumlah Usaha yang Dimiliki Seluruh Anggota Keluarga (Sumber: UMKM dan …
+r.`ada_keluarga_label` AS `ada_keluarga_label`   -- Keberadaan Keluarga
+r.`ada_keluarga_value` AS `ada_keluarga_value`   -- Keberadaan Keluarga
+r.`ada_bang_usaha_label` AS `ada_bang_usaha_label`   -- Keberadaan Bangunan Lainnya/ Usaha
+r.`ada_bang_usaha_value` AS `ada_bang_usaha_value`   -- Keberadaan Bangunan Lainnya/ Usaha
+r.`alamat_prelist` AS `alamat_prelist`   -- Alamat (Prelist)
+r.`jalan_domisili` AS `jalan_domisili`   -- Nama Jalan/Gang/Komplek/Gedung/dll (Tuliskan dengan rinci)
+r.`nomor_domisili` AS `nomor_domisili`   -- Blok/Nomor Rumah (Jika tidak ada nomor rumah, tulis strip (-))
+r.`domisili_label` AS `domisili_label`   -- Apakah alamat tersebut sesuai dengan alamat pada Kartu Keluarga?
+r.`domisili_value` AS `domisili_value`   -- Apakah alamat tersebut sesuai dengan alamat pada Kartu Keluarga?
+r.`no_bangunan_terbesar` AS `no_bangunan_terbesar`   -- NOMOR URUT BANGUNAN TERBESAR:
+r.`no_bang` AS `no_bang`   -- Nomor Urut Bangunan
+r.`kode_bang_label` AS `kode_bang_label`   -- Kode Penggunaan Bangunan
+r.`kode_bang_value` AS `kode_bang_value`   -- Kode Penggunaan Bangunan
+r.`geotag_accuracy` AS `geotag_accuracy`   -- Geotagging
+r.`geotag_latitude` AS `geotag_latitude`   -- Geotagging
+r.`geotag_longitude` AS `geotag_longitude`   -- Geotagging
+r.`foto_depan_p_filename` AS `foto_depan_p_filename`   -- Foto tampak depan (harus mencakup atap dan dinding)
+r.`foto_depan_p_uri` AS `foto_depan_p_uri`   -- Foto tampak depan (harus mencakup atap dan dinding)
+r.`foto_depan_p_url` AS `foto_depan_p_url`   -- Foto tampak depan (harus mencakup atap dan dinding)
+r.`jumlah_ak_kk` AS `jumlah_ak_kk`   -- Jumlah Anggota Keluarga Berdasarkan Kartu Keluarga
+r.`jumlah_ak` AS `jumlah_ak`   -- Jumlah Anggota Keluarga Yang menetap di dalam bangunan tempat tinggal …
+r.`usaha_kos_label` AS `usaha_kos_label`   -- Apakah namaKK atau anggota keluarga dari namaKK memiliki usaha penyewa…
+r.`usaha_kos_value` AS `usaha_kos_value`   -- Apakah namaKK atau anggota keluarga dari namaKK memiliki usaha penyewa…
+r.`usaha_keliling_label` AS `usaha_keliling_label`   -- Apakah namaKK atau anggota keluarga dari namaKK memiliki usaha kelilin…
+r.`usaha_keliling_value` AS `usaha_keliling_value`   -- Apakah namaKK atau anggota keluarga dari namaKK memiliki usaha kelilin…
+r.`usaha_online_label` AS `usaha_online_label`   -- Apakah namaKK atau anggota keluarga dari namaKK memiliki usaha online …
+r.`usaha_online_value` AS `usaha_online_value`   -- Apakah namaKK atau anggota keluarga dari namaKK memiliki usaha online …
+r.`usaha_bongkar_label` AS `usaha_bongkar_label`   -- Apakah namaKK atau anggota keluarga dari namaKK memiliki usaha di luar…
+r.`usaha_bongkar_value` AS `usaha_bongkar_value`   -- Apakah namaKK atau anggota keluarga dari namaKK memiliki usaha di luar…
+r.`usaha_konstruksi_label` AS `usaha_konstruksi_label`   -- Apakah namaKK atau anggota keluarga dari namaKK memiliki usaha sebagai…
+r.`usaha_konstruksi_value` AS `usaha_konstruksi_value`   -- Apakah namaKK atau anggota keluarga dari namaKK memiliki usaha sebagai…
+r.`usaha_lain_label` AS `usaha_lain_label`   -- Apakah namaKK atau anggota keluarga dari namaKK memiliki usaha lain? S…
+r.`usaha_lain_value` AS `usaha_lain_value`   -- Apakah namaKK atau anggota keluarga dari namaKK memiliki usaha lain? S…
+r.`tanaman_pangan_label` AS `tanaman_pangan_label`   -- Apakah namaKK atau anggota keluarga dari namaKK selama setahun yang la…
+r.`tanaman_pangan_value` AS `tanaman_pangan_value`   -- Apakah namaKK atau anggota keluarga dari namaKK selama setahun yang la…
+r.`hortikultura_label` AS `hortikultura_label`   -- Apakah namaKK atau anggota keluarga dari namaKK selama setahun yang la…
+r.`hortikultura_value` AS `hortikultura_value`   -- Apakah namaKK atau anggota keluarga dari namaKK selama setahun yang la…
+r.`perkebunan_label` AS `perkebunan_label`   -- Apakah namaKK atau anggota keluarga dari namaKK selama setahun yang la…
+r.`perkebunan_value` AS `perkebunan_value`   -- Apakah namaKK atau anggota keluarga dari namaKK selama setahun yang la…
+r.`peternakan_label` AS `peternakan_label`   -- Apakah namaKK atau anggota keluarga dari namaKK selama setahun yang la…
+r.`peternakan_value` AS `peternakan_value`   -- Apakah namaKK atau anggota keluarga dari namaKK selama setahun yang la…
+r.`kehutanan_label` AS `kehutanan_label`   -- Apakah namaKK atau anggota keluarga dari namaKK selama setahun yang la…
+r.`kehutanan_value` AS `kehutanan_value`   -- Apakah namaKK atau anggota keluarga dari namaKK selama setahun yang la…
+r.`perikanan_label` AS `perikanan_label`   -- Apakah namaKK atau anggota keluarga dari namaKK selama setahun yang la…
+r.`perikanan_value` AS `perikanan_value`   -- Apakah namaKK atau anggota keluarga dari namaKK selama setahun yang la…
+r.`jasa_pertanian_label` AS `jasa_pertanian_label`   -- Apakah namaKK atau anggota keluarga dari namaKK selama setahun yang la…
+r.`jasa_pertanian_value` AS `jasa_pertanian_value`   -- Apakah namaKK atau anggota keluarga dari namaKK selama setahun yang la…
+r.`jumlah_usaha_ditemukan` AS `jumlah_usaha_ditemukan`   -- Jumlah usaha yang ditemukan Jumlah usaha akan terisi dengan meng-updat…
+
+-- [SE2026 - L BLOK III]
+r.`dtsen_nama_kk` AS `dtsen_nama_kk`   -- a. Nama Kepala Keluarga
+r.`dtsen_no_kk` AS `dtsen_no_kk`   -- c. Nomor kartu keluarga
+r.`jml_kk` AS `jml_kk`   -- a. Jumlah anggota keluarga sesuai KK
+r.`jml_kk_update` AS `jml_kk_update`   -- b. Jumlah anggota keluarga sesuai hasil pendataan Jumlah anggota kelua…
+
+-- [SE2026 - L BLOK IV]
+r.`jns_bangunan_label` AS `jns_bangunan_label`   -- a. Apa jenis bangunan tempat tinggal yang ditempati?
+r.`jns_bangunan_value` AS `jns_bangunan_value`   -- a. Apa jenis bangunan tempat tinggal yang ditempati?
+r.`jns_bangunan_lain` AS `jns_bangunan_lain`   -- a. Jenis bangunan tempat tinggal kode 5.Lainnya: .................
+r.`nm_apt` AS `nm_apt`   -- b. Jika apartemen/rumah susun , sebutkan Nama/Nomor Lantai: .
+r.`jml_ak_tinggal` AS `jml_ak_tinggal`   -- a. Berapa jumlah keluarga yang tinggal dalam 1 rumah/tempat tinggal?
+r.`status_kepemilikan_label` AS `status_kepemilikan_label`   -- a. Apa status kepemilikan bangunan tempat tinggal yang ditempati?
+r.`status_kepemilikan_value` AS `status_kepemilikan_value`   -- a. Apa status kepemilikan bangunan tempat tinggal yang ditempati?
+r.`status_kepemilikan_lain` AS `status_kepemilikan_lain`   -- a. Deskripsi status kepemilikan bangunan tempat tinggal yang ditempati…
+r.`bukti_kepemilikan_label` AS `bukti_kepemilikan_label`   -- b. Jika tempat tinggal milik sendiri , apa jenis bukti kepemilikan tan…
+r.`bukti_kepemilikan_value` AS `bukti_kepemilikan_value`   -- b. Jika tempat tinggal milik sendiri , apa jenis bukti kepemilikan tan…
+r.`sewa_sendiri` AS `sewa_sendiri`   -- Jika milik sendiri/bebas sewa , perkiraan harga sewa sebulan:
+r.`sewa_kontrak` AS `sewa_kontrak`   -- Jika kontrak/sewa , nilai kontrak sebulan:
+r.`sewa_dinas` AS `sewa_dinas`   -- Jika dinas atau lainnya , perkiraan nilai sewa sebulan:
+r.`luas_lantai` AS `luas_lantai`   -- Berapa luas lantai bangunan tempat tinggal? (m²)
+r.`jns_lantai_label` AS `jns_lantai_label`   -- a. Apakah bahan bangunan utama lantai rumah terluas?
+r.`jns_lantai_value` AS `jns_lantai_value`   -- a. Apakah bahan bangunan utama lantai rumah terluas?
+r.`kondisi_lantai_label` AS `kondisi_lantai_label`   -- b. Kondisi Lantai
+r.`kondisi_lantai_value` AS `kondisi_lantai_value`   -- b. Kondisi Lantai
+r.`jns_dinding_label` AS `jns_dinding_label`   -- a. Apakah bahan bangunan utama dinding rumah terluas?
+r.`jns_dinding_value` AS `jns_dinding_value`   -- a. Apakah bahan bangunan utama dinding rumah terluas?
+r.`kondisi_dinding_label` AS `kondisi_dinding_label`   -- b. Kondisi Dinding
+r.`kondisi_dinding_value` AS `kondisi_dinding_value`   -- b. Kondisi Dinding
+r.`jns_atap_label` AS `jns_atap_label`   -- a. Apakah bahan bangunan utama atap rumah terluas?
+r.`jns_atap_value` AS `jns_atap_value`   -- a. Apakah bahan bangunan utama atap rumah terluas?
+r.`kondisi_atap_label` AS `kondisi_atap_label`   -- b. Kondisi Atap
+r.`kondisi_atap_value` AS `kondisi_atap_value`   -- b. Kondisi Atap
+r.`tempat_bab_label` AS `tempat_bab_label`   -- Apakah memiliki fasilitas tempat buang air besar dan siapa saja yang m…
+r.`tempat_bab_value` AS `tempat_bab_value`   -- Apakah memiliki fasilitas tempat buang air besar dan siapa saja yang m…
+r.`jns_closet_label` AS `jns_closet_label`   -- Apakah jenis kloset yang digunakan?
+r.`jns_closet_value` AS `jns_closet_value`   -- Apakah jenis kloset yang digunakan?
+r.`buang_tinja_label` AS `buang_tinja_label`   -- Di manakah tempat pembuangan akhir tinja?
+r.`buang_tinja_value` AS `buang_tinja_value`   -- Di manakah tempat pembuangan akhir tinja?
+r.`air_minum_label` AS `air_minum_label`   -- Apakah sumber air utama yang digunakan keluarga untuk minum?
+r.`air_minum_value` AS `air_minum_value`   -- Apakah sumber air utama yang digunakan keluarga untuk minum?
+r.`sumber_penerangan_label` AS `sumber_penerangan_label`   -- Apakah sumber utama penerangan rumah tangga ini?
+r.`sumber_penerangan_value` AS `sumber_penerangan_value`   -- Apakah sumber utama penerangan rumah tangga ini?
+r.`jml_meteran` AS `jml_meteran`   -- a. Jika listrik PLN dengan meteran , berapa banyak unit meteran listri…
+r.`listrik_sebulan` AS `listrik_sebulan`   -- a. Berapa nilai pengeluaran listrik sebulan? (Dapat menggunakan pertan…
+r.`pulsa_sebulan` AS `pulsa_sebulan`   -- b. Berapa pengeluaran pulsa dan internet seluruh anggota keluarga sebu…
+r.`pengeluaran_makanan_mingguan` AS `pengeluaran_makanan_mingguan`   -- a. Berapa rata-rata pengeluaran makanan keluarga seminggu?
+r.`pengeluaran_non_makan_bulanan` AS `pengeluaran_non_makan_bulanan`   -- b. Berapa rata-rata pengeluaran bukan makanan rutin keluarga bulanan?
+r.`pengeluaran_non_makan_tahunan` AS `pengeluaran_non_makan_tahunan`   -- c. Berapa rata-rata pengeluaran bukan makanan rutin keluarga tahunan?
+r.`jumlah_tabung3kg_new` AS `jumlah_tabung3kg_new`   -- Tabung gas 3 kg (unit)
+r.`jumlah_tabung5kg_new` AS `jumlah_tabung5kg_new`   -- Tabung gas 5,5 kg atau lebih (unit)
+r.`jumlah_kulkas_new` AS `jumlah_kulkas_new`   -- Lemari es/kulkas (unit)
+r.`jumlah_ac_new` AS `jumlah_ac_new`   -- Air Conditioner (AC) (unit)
+r.`jumlah_emas_new` AS `jumlah_emas_new`   -- Emas/perhiasan (gram)
+r.`jumlah_laptop_new` AS `jumlah_laptop_new`   -- Komputer/laptop/tablet: (unit)
+r.`jumlah_motor_new` AS `jumlah_motor_new`   -- i. Sepeda motor (termasuk sepeda motor listrik):
+r.`nilai_motor` AS `nilai_motor`   -- ii. Total nilai aset sepeda motor (rupiah)
+r.`jumlah_mobil_new` AS `jumlah_mobil_new`   -- i. Mobil (termasuk mobil listrik):
+r.`nilai_mobil` AS `nilai_mobil`   -- ii. Total nilai aset mobil (rupiah)
+r.`jumlah_lahan_new` AS `jumlah_lahan_new`   -- i. Jumlah tanah/lahan di tempat lain (selain yang ditempati):
+r.`nilai_lahan` AS `nilai_lahan`   -- ii. Total nilai harga jual tanah/lahan di tempat lain (selain yang dit…
+r.`jumlah_rumah_new` AS `jumlah_rumah_new`   -- i. Jumlah rumah/bangunan di tempat lain (selain yang ditempati):
+r.`nilai_rumah` AS `nilai_rumah`   -- ii. Total nilai harga jual rumah/bangunan di tempat lain (selain yang …
+r.`foto_depan_filename` AS `foto_depan_filename`   -- Foto tampak depan (harus mencakup atap dan dinding)
+r.`foto_depan_uri` AS `foto_depan_uri`   -- Foto tampak depan (harus mencakup atap dan dinding)
+r.`foto_depan_url` AS `foto_depan_url`   -- Foto tampak depan (harus mencakup atap dan dinding)
+r.`foto_ruang_tamu_filename` AS `foto_ruang_tamu_filename`   -- Foto ruang tamu (harus mencakup dinding dan lantai)
+r.`foto_ruang_tamu_uri` AS `foto_ruang_tamu_uri`   -- Foto ruang tamu (harus mencakup dinding dan lantai)
+r.`foto_ruang_tamu_url` AS `foto_ruang_tamu_url`   -- Foto ruang tamu (harus mencakup dinding dan lantai)
+
+-- [KETERANGAN PEMBERI JAWABAN]
+r.`nama_info_list_value` AS `nama_info_list_value`   -- Nama Pemberi Informasi
+r.`nama_lain` AS `nama_lain`   -- Nama Lain
+r.`telp_info` AS `telp_info`   -- Nomor HP/Telepon
+r.`email_info` AS `email_info`   -- E-mail
+
+-- [CATATAN]
+r.`catatan` AS `catatan`   -- Catatan
+r.`waktu_selesai` AS `waktu_selesai`   -- Waktu Selesai
+r.`cek_anomali_button` AS `cek_anomali_button`   -- Tampilkan Anomali Usaha dan Keluarga
+r.`anomali_admin` AS `anomali_admin`   -- Anomali diselesaikan oleh admin
+r.`catatan_anomali_admin` AS `catatan_anomali_admin`   -- Penjelasan Penyelesaian Anomali oleh Admin
+
+-- [ANOMALI USAHA]
+r.`anomali_1_penjelasan` AS `anomali_1_penjelasan`   -- Penjelasan Anomali 1
+r.`anomali_2_penjelasan` AS `anomali_2_penjelasan`   -- Penjelasan Anomali 2
+r.`anomali_3_penjelasan` AS `anomali_3_penjelasan`   -- Penjelasan Anomali 3
+r.`anomali_4_penjelasan` AS `anomali_4_penjelasan`   -- Penjelasan Anomali 4
+r.`anomali_5_penjelasan` AS `anomali_5_penjelasan`   -- Penjelasan Anomali 5
+r.`anomali_6_penjelasan` AS `anomali_6_penjelasan`   -- Penjelasan Anomali 6
+r.`anomali_7_penjelasan` AS `anomali_7_penjelasan`   -- Penjelasan Anomali 7
+r.`anomali_8_penjelasan` AS `anomali_8_penjelasan`   -- Penjelasan Anomali 8
+
+-- [ANOMALI KELUARGA]
+r.`anomali_1_dtsen_penjelasan` AS `anomali_1_dtsen_penjelasan`   -- Penjelasan Anomali 1
+r.`anomali_2_dtsen_penjelasan` AS `anomali_2_dtsen_penjelasan`   -- Penjelasan Anomali 2
+r.`anomali_3_dtsen_penjelasan` AS `anomali_3_dtsen_penjelasan`   -- Penjelasan Anomali 3
+r.`anomali_4_dtsen_penjelasan` AS `anomali_4_dtsen_penjelasan`   -- Penjelasan Anomali 4
+r.`anomali_5_dtsen_penjelasan` AS `anomali_5_dtsen_penjelasan`   -- Penjelasan Anomali 5
+r.`anomali_6_dtsen_penjelasan` AS `anomali_6_dtsen_penjelasan`   -- Penjelasan Anomali 6
+r.`anomali_7_dtsen_penjelasan` AS `anomali_7_dtsen_penjelasan`   -- Penjelasan Anomali 7
+
+-- [LAINNYA (variabel sistem kuesioner)]
+r.`tanggal_mulai_anomali` AS `tanggal_mulai_anomali`   -- tanggal_mulai_anomali
+r.`nama_info` AS `nama_info`   -- nama_info_cawi
+r.`nik_kk` AS `nik_kk`   -- b. NIK Kepala Keluarga
+r.`label_usaha` AS `label_usaha`   -- Label Usaha
+r.`cek_anomali` AS `cek_anomali`   -- CEK ANOMALI
+r.`prelist_dtsen` AS `prelist_dtsen`   -- Nama anggota keluarga
+r.`idsbr_keluarga` AS `idsbr_keluarga`   -- ID SBR keluarga
+r.`idsbr_match` AS `idsbr_match`   -- ID SBR Match
+r.`cawi_identifier` AS `cawi_identifier`   -- cawi_identifier
+r.`is_cawi` AS `is_cawi`   -- is_cawi
+r.`tanggal_anomali` AS `tanggal_anomali`   -- tanggal_anomali
+r.`is_from_cawi` AS `is_from_cawi`   -- is_from_cawi
+r.`anomali_8_resolved_at` AS `anomali_8_resolved_at`   -- anomali_8_resolved_at
+r.`is_cawi_keluarga` AS `is_cawi_keluarga`   -- is_cawi_keluarga
+-- r.`tanda_info` AS `tanda_info`   -- NONAKTIF: data tanda tangan (bisa sangat panjang)
+r.`anomali_7_resolved_at` AS `anomali_7_resolved_at`   -- anomali_7_resolved_at
+r.`ket_editable` AS `ket_editable`   -- Keterangan/Catatan Kaki untuk predefined editable
+r.`anomali_6_resolved_at` AS `anomali_6_resolved_at`   -- anomali_6_resolved_at
+r.`ub_prelist` AS `ub_prelist`   -- Status UB Prelist
+r.`kode_prov` AS `kode_prov`   -- kode_prov
+r.`prelist_dtsen_var` AS `prelist_dtsen_var`   -- Nama anggota keluarga prelist
+r.`anomali_5_resolved_at` AS `anomali_5_resolved_at`   -- anomali_5_resolved_at
+r.`prov_kab` AS `prov_kab`   -- prov_kab
+r.`anomali_4_resolved_at` AS `anomali_4_resolved_at`   -- anomali_4_resolved_at
+r.`jk_krt` AS `jk_krt`   -- jk_krt
+r.`ub` AS `ub`   -- Status UB umkm
+r.`anomali_3_resolved_at` AS `anomali_3_resolved_at`   -- anomali_3_resolved_at
+r.`umur_krt` AS `umur_krt`   -- umur krt
+r.`flag_pbi` AS `flag_pbi`   -- PBI
+r.`anomali_2_resolved_at` AS `anomali_2_resolved_at`   -- anomali_2_resolved_at
+r.`anomali_1_resolved_at` AS `anomali_1_resolved_at`   -- anomali_1_resolved_at
+r.`no_kk_prelist` AS `no_kk_prelist`   -- Nomor KK prelist untuk pembanding
+r.`nik_prelist` AS `nik_prelist`   -- NIK prelist untuk pembanding
+r.`nama_principal` AS `nama_principal`   -- Nama Keluarga/Bangunan/Usaha untuk principal
+r.`var_desa` AS `var_desa`   -- New Question
+r.`anomali_1_dtsen_resolved_at` AS `anomali_1_dtsen_resolved_at`   -- anomali_1_dtsen_resolved_at
+r.`has_kodepos` AS `has_kodepos`   -- has_kodepos
+r.`anomali_2_dtsen_resolved_at` AS `anomali_2_dtsen_resolved_at`   -- anomali_2_dtsen_resolved_at
+r.`hasilPemadananNIK_p` AS `hasilPemadananNIK_p`   -- Hasil Pengecekkan NIK
+-- r.`htmlHasilPemadananNIK2_p` AS `htmlHasilPemadananNIK2_p`   -- NONAKTIF: tampilan HTML hasil cek NIK
+r.`anomali_3_dtsen_resolved_at` AS `anomali_3_dtsen_resolved_at`   -- anomali_3_dtsen_resolved_at
+r.`anomali_4_dtsen_resolved_at` AS `anomali_4_dtsen_resolved_at`   -- anomali_4_dtsen_resolved_at
+r.`anomali_5_dtsen_resolved_at` AS `anomali_5_dtsen_resolved_at`   -- anomali_5_dtsen_resolved_at
+r.`anomali_6_dtsen_resolved_at` AS `anomali_6_dtsen_resolved_at`   -- anomali_6_dtsen_resolved_at
+r.`jml_meteran_var` AS `jml_meteran_var`   -- jml_meteran_var
+r.`anomali_7_dtsen_resolved_at` AS `anomali_7_dtsen_resolved_at`   -- anomali_7_dtsen_resolved_at
+r.`alamat_klrg` AS `alamat_klrg`   -- Alamat ket
+r.`total_pendapatan_keluarga_sebulan` AS `total_pendapatan_keluarga_sebulan`   -- Total Pendapatan Keluarga Sebulan
+r.`kode_keberedaan_keluarga` AS `kode_keberedaan_keluarga`   -- Pilihan kode keberadaan keluarga
+r.`total_pengeluaran_keluarga_sebulan` AS `total_pengeluaran_keluarga_sebulan`   -- Total Pengeluaran Keluarga Sebulan
+r.`kode_keluarga_new` AS `kode_keluarga_new`   -- Pilihan Keberadaan Keluarga (new)
+r.`kode_bangunan_new` AS `kode_bangunan_new`   -- Pilihan Keberadaan Bangunan (new)
+r.`jumlah_tabung3kg` AS `jumlah_tabung3kg`   -- jumlah_tabung3kg_prelist
+r.`jumlah_tabung5kg` AS `jumlah_tabung5kg`   -- jumlah_tabung5kg_prelist
+r.`no_keluarga_terbesar` AS `no_keluarga_terbesar`   -- NOMOR URUT KELUARGA TERBESAR:
+r.`no_keluarga` AS `no_keluarga`   -- Nomor Urut Keluarga
+r.`jumlah_kulkas` AS `jumlah_kulkas`   -- jumlah_kulkas_prelist
+r.`jumlah_ac` AS `jumlah_ac`   -- jumlah_ac_prelist
+r.`jumlah_emas` AS `jumlah_emas`   -- jumlah_emas_prelist
+r.`pilihan_kode_bang` AS `pilihan_kode_bang`   -- Options untuk kode_bang disesuaikan
+r.`jumlah_laptop` AS `jumlah_laptop`   -- jumlah_laptop_prelist
+r.`jumlah_motor` AS `jumlah_motor`   -- jumlah_motor_prelist
+r.`jumlah_mobil` AS `jumlah_mobil`   -- jumlah_mobil_prelist
+r.`jumlah_lahan` AS `jumlah_lahan`   -- jumlah_lahan_prelist
+r.`jumlah_rumah` AS `jumlah_rumah`   -- jumlah_rumah_prelist
+r.`usaha_gabung` AS `usaha_gabung`   -- List yang ditampilkan di se2026_nested
+r.`nama_usaha_prelist` AS `nama_usaha_prelist`   -- Nama Usaha Prelist
+r.`idsbr_all` AS `idsbr_all`   -- idsbr_all
+r.`email_all` AS `email_all`   -- email_all
+r.`skala_usaha_all` AS `skala_usaha_all`   -- skala_usaha_all
+r.`idunik_MSSD` AS `idunik_MSSD`   -- idunik_MSSD
+r.`jumlah_usaha` AS `jumlah_usaha`   -- jumlah_usaha
+r.`ya_pertanian` AS `ya_pertanian`   -- Jumlah Usaha Pertanian
+r.`ya_nonpertanian` AS `ya_nonpertanian`   -- Jumlah Usaha Non-Pertanian
+r.`ya_gabung` AS `ya_gabung`   -- jum usaha gabung
+r.`skala_usaha_prelist` AS `skala_usaha_prelist`   -- skala_usaha_prelist
+
+-- ===================== se2026_nested (n.) =====================
+
+-- [SE2026 - L BLOK II]
+n.`pilih_umkm_sls_label` AS `pilih_umkm_sls_label`   -- Pilih UMKM dalam satu SLS yang sama
+n.`pilih_umkm_sls_value` AS `pilih_umkm_sls_value`   -- Pilih UMKM dalam satu SLS yang sama
+n.`prov_l` AS `prov_l`   -- Provinsi
+n.`kab_l` AS `kab_l`   -- Kabupaten/Kota
+n.`kec_l` AS `kec_l`   -- Kecamatan
+n.`desa_l` AS `desa_l`   -- Kelurahan/Desa/Nagari
+n.`kodesls_l` AS `kodesls_l`   -- Kode SLS/Sub-SLS
+n.`sls_l` AS `sls_l`   -- Nama SLS/Sub-SLS
+n.`no_bang_l` AS `no_bang_l`   -- Nomor Bangunan
+n.`no_usaha` AS `no_usaha`   -- Nomor Urut Usaha/Perusahaan
+n.`nama_usaha` AS `nama_usaha`   -- a. Nama usaha/perusahaan
+n.`keberadaan_usaha_label` AS `keberadaan_usaha_label`   -- Keberadaan Usaha
+n.`keberadaan_usaha_value` AS `keberadaan_usaha_value`   -- Keberadaan Usaha
+n.`nama_usaha_edit` AS `nama_usaha_edit`   -- label_edit hint_edit
+n.`nama_komersial` AS `nama_komersial`   -- b. Nama komersial usaha/perusahaan Jika tidak memiliki nama komersial,…
+n.`alamat_usaha_view` AS `alamat_usaha_view`   -- Alamat usaha/perusahaan
+n.`rt` AS `rt`   -- • RT
+n.`rw` AS `rw`   -- • RW
+n.`kode_pos` AS `kode_pos`   -- • Kode Pos
+n.`kode_area` AS `kode_area`   -- - Kode Area
+n.`no_telp` AS `no_telp`   -- - Nomor Telepon
+n.`eks` AS `eks`   -- - Ekstensi
+n.`email` AS `email`   -- • Email
+n.`hp` AS `hp`   -- • Nomor HP/whatsapp:
+n.`website` AS `website`   -- • Homepage/website Alamat website diawali dengan www. Contoh : www.bps…
+n.`jenis_kawasan_label` AS `jenis_kawasan_label`   -- d. Jenis kawasan beroperasi
+n.`jenis_kawasan_value` AS `jenis_kawasan_value`   -- d. Jenis kawasan beroperasi
+n.`nama_kek_ki_label` AS `nama_kek_ki_label`   -- e. Nama KEK/KI
+n.`nama_kek_ki_value` AS `nama_kek_ki_value`   -- e. Nama KEK/KI
+n.`nama_kawasan` AS `nama_kawasan`   -- e. Nama kawasan Contoh: KEK Mandalika, Kawasan Industri Jababeka, Stas…
+n.`jenis_usaha_label` AS `jenis_usaha_label`   -- a. Apa jenis usaha/perusahaan ini?
+n.`jenis_usaha_value` AS `jenis_usaha_value`   -- a. Apa jenis usaha/perusahaan ini?
+n.`alamat_usaha_utama` AS `alamat_usaha_utama`   -- b1. Alamat/lokasi usaha utama
+n.`prov_usaha_utama_label` AS `prov_usaha_utama_label`   -- b2. Provinsi
+n.`prov_usaha_utama_value` AS `prov_usaha_utama_value`   -- b2. Provinsi
+n.`kab_usaha_utama_label` AS `kab_usaha_utama_label`   -- b3. Kabupaten/Kota
+n.`kab_usaha_utama_value` AS `kab_usaha_utama_value`   -- b3. Kabupaten/Kota
+n.`punya_nib_label` AS `punya_nib_label`   -- a. Apakah memiliki Nomor Induk Berusaha (NIB)?
+n.`punya_nib_value` AS `punya_nib_value`   -- a. Apakah memiliki Nomor Induk Berusaha (NIB)?
+n.`nib` AS `nib`   -- b. Tuliskan NIB:
+n.`tidak_nib_label` AS `tidak_nib_label`   -- c. Apa alasan utama tidak memiliki NIB?
+n.`tidak_nib_value` AS `tidak_nib_value`   -- c. Apa alasan utama tidak memiliki NIB?
+n.`nib_lainnya` AS `nib_lainnya`   -- c. Lainnya, tuliskan....
+n.`badan_usaha_label` AS `badan_usaha_label`   -- a. Apa status badan usaha dari usaha/perusahaan ini?
+n.`badan_usaha_value` AS `badan_usaha_value`   -- a. Apa status badan usaha dari usaha/perusahaan ini?
+n.`koperasi_kdkmp_label` AS `koperasi_kdkmp_label`   -- b. Apakah koperasi ini merupakan Koperasi Desa/Kelurahan Merah Putih (…
+n.`koperasi_kdkmp_value` AS `koperasi_kdkmp_value`   -- b. Apakah koperasi ini merupakan Koperasi Desa/Kelurahan Merah Putih (…
+n.`jenis_koperasi_label` AS `jenis_koperasi_label`   -- c. Apa jenis koperasi ini berdasarkan layanannya?
+n.`jenis_koperasi_value` AS `jenis_koperasi_value`   -- c. Apa jenis koperasi ini berdasarkan layanannya?
+n.`lap_keuangan_label` AS `lap_keuangan_label`   -- d. Apakah mempunyai laporan/catatan keuangan?
+n.`lap_keuangan_value` AS `lap_keuangan_value`   -- d. Apakah mempunyai laporan/catatan keuangan?
+n.`pengusaha_var_label` AS `pengusaha_var_label`   -- a. Nama Pengusaha / Penanggung Jawab
+n.`pengusaha_var_value` AS `pengusaha_var_value`   -- a. Nama Pengusaha / Penanggung Jawab
+n.`pengusaha` AS `pengusaha`   -- a. Nama Pengusaha / Penanggung Jawab
+n.`jk_var` AS `jk_var`   -- b. Jenis Kelamin
+n.`jk_label` AS `jk_label`   -- b. Jenis Kelamin
+n.`jk_value` AS `jk_value`   -- b. Jenis Kelamin
+n.`umur_pj_var` AS `umur_pj_var`   -- c. Umur
+n.`umur` AS `umur`   -- c. Umur
+n.`nik_pengusaha_var` AS `nik_pengusaha_var`   -- d. Nomor Induk Kependudukan (NIK )
+n.`nik_pengusaha` AS `nik_pengusaha`   -- d. Nomor Induk Kependudukan (NIK)
+n.`keg_utama` AS `keg_utama`   -- a. Apa kegiatan utama usaha/perusahaan ini? Tuliskan selengkapnya
+n.`produk_sendiri_label` AS `produk_sendiri_label`   -- b1. Apakah memproduksi barang di lokasi ini?
+n.`produk_sendiri_value` AS `produk_sendiri_value`   -- b1. Apakah memproduksi barang di lokasi ini?
+n.`layanan_mamin_label` AS `layanan_mamin_label`   -- b2. Apakah menyediakan layanan makan minum? Ciri: terdapat kegiatan pe…
+n.`layanan_mamin_value` AS `layanan_mamin_value`   -- b2. Apakah menyediakan layanan makan minum? Ciri: terdapat kegiatan pe…
+n.`keg_penjualan_label` AS `keg_penjualan_label`   -- b3. Apakah melakukan penjualan barang?
+n.`keg_penjualan_value` AS `keg_penjualan_value`   -- b3. Apakah melakukan penjualan barang?
+n.`keg_jasa_label` AS `keg_jasa_label`   -- b4. Pilih salah satu aktivitas yang dilakukan:
+n.`keg_jasa_value` AS `keg_jasa_value`   -- b4. Pilih salah satu aktivitas yang dilakukan:
+n.`lokasi_usaha_label` AS `lokasi_usaha_label`   -- c. Di mana usaha tersebut biasa dilakukan?
+n.`lokasi_usaha_value` AS `lokasi_usaha_value`   -- c. Di mana usaha tersebut biasa dilakukan?
+n.`input` AS `input`   -- d. Apa input yang digunakan? Contoh: daging ikan, tepung; daging kebab…
+n.`proses` AS `proses`   -- e. Bagaimana proses mengubah input tersebut menjadi produk output (bes…
+n.`produk` AS `produk`   -- f. Apa produk utama yang dihasilkan?
+n.`kbli_genai_label` AS `kbli_genai_label`   -- g. Kode KBLI
+n.`kbli_genai_value` AS `kbli_genai_value`   -- g. Kode KBLI
+n.`kbli_label` AS `kbli_label`   -- Pilih dari Master KBLI
+n.`kbli_value` AS `kbli_value`   -- Pilih dari Master KBLI
+n.`kategori` AS `kategori`   -- h. Kategori Lapangan Usaha:
+n.`cek_kbli_pml_label` AS `cek_kbli_pml_label`   -- Cek Kategori & KBLI (Diisi oleh PML)
+n.`cek_kbli_pml_value` AS `cek_kbli_pml_value`   -- Cek Kategori & KBLI (Diisi oleh PML)
+n.`klasifikasi_label` AS `klasifikasi_label`   -- i. Jika usaha/perusahaan merupakan akomodasi jangka pendek, apa klasif…
+n.`klasifikasi_value` AS `klasifikasi_value`   -- i. Jika usaha/perusahaan merupakan akomodasi jangka pendek, apa klasif…
+n.`jaringan_label` AS `jaringan_label`   -- a. Apa jaringan usaha dari usaha/perusahaan ini?
+n.`jaringan_value` AS `jaringan_value`   -- a. Apa jaringan usaha dari usaha/perusahaan ini?
+n.`jumlah_kc` AS `jumlah_kc`   -- b. Berapa jumlah seluruh kantor cabang dan unit usaha yang berada di b…
+n.`nama_kp` AS `nama_kp`   -- a. Nama Kantor Pusat
+n.`alamat_kp` AS `alamat_kp`   -- b. Alamat Kantor Pusat
+n.`email_kp` AS `email_kp`   -- c. Email
+n.`negara_kp_label` AS `negara_kp_label`   -- d. Negara
+n.`negara_kp_value` AS `negara_kp_value`   -- d. Negara
+n.`prov_kp_label` AS `prov_kp_label`   -- e. Provinsi
+n.`prov_kp_value` AS `prov_kp_value`   -- e. Provinsi
+n.`kab_kp_label` AS `kab_kp_label`   -- f. Kabupaten/Kota
+n.`kab_kp_value` AS `kab_kp_value`   -- f. Kabupaten/Kota
+n.`internet_label` AS `internet_label`   -- a. Apakah usaha/perusahaan ini menggunakan internet dalam menjalankan …
+n.`internet_value` AS `internet_value`   -- a. Apakah usaha/perusahaan ini menggunakan internet dalam menjalankan …
+n.`internet_produksi_label` AS `internet_produksi_label`   -- b2. Produksi barang/jasa
+n.`internet_produksi_value` AS `internet_produksi_value`   -- b2. Produksi barang/jasa
+n.`internet_pesanan_label` AS `internet_pesanan_label`   -- b1. Menerima pesanan barang/jasa
+n.`internet_pesanan_value` AS `internet_pesanan_value`   -- b1. Menerima pesanan barang/jasa
+n.`internet_distribusi_label` AS `internet_distribusi_label`   -- b3. Distribusi barang/jasa
+n.`internet_distribusi_value` AS `internet_distribusi_value`   -- b3. Distribusi barang/jasa
+n.`internet_beli_label` AS `internet_beli_label`   -- b4. Membeli bahan baku online
+n.`internet_beli_value` AS `internet_beli_value`   -- b4. Membeli bahan baku online
+n.`internet_promosi_label` AS `internet_promosi_label`   -- b5. Promosi
+n.`internet_promosi_value` AS `internet_promosi_value`   -- b5. Promosi
+n.`internet_lainnya_label` AS `internet_lainnya_label`   -- b6. Lainnya
+n.`internet_lainnya_value` AS `internet_lainnya_value`   -- b6. Lainnya
+n.`digital_label` AS `digital_label`   -- c. Apakah usaha/perusahaan ini memanfaatkan teknologi digital Aritific…
+n.`digital_value` AS `digital_value`   -- c. Apakah usaha/perusahaan ini memanfaatkan teknologi digital Aritific…
+n.`produksi_lingkungan_label` AS `produksi_lingkungan_label`   -- a. Apakah usaha/perusahaan ini memproduksi barang/jasa yang ramah ling…
+n.`produksi_lingkungan_value` AS `produksi_lingkungan_value`   -- a. Apakah usaha/perusahaan ini memproduksi barang/jasa yang ramah ling…
+n.`perlindungan_lingkungan_label` AS `perlindungan_lingkungan_label`   -- b. Apakah usaha/perusahaan ini menggunakan input untuk tujuan perlindu…
+n.`perlindungan_lingkungan_value` AS `perlindungan_lingkungan_value`   -- b. Apakah usaha/perusahaan ini menggunakan input untuk tujuan perlindu…
+n.`produk_seni_label` AS `produk_seni_label`   -- Apakah usaha/perusahaan ini menggunakan produk karya seni, sastra, des…
+n.`produk_seni_value` AS `produk_seni_value`   -- Apakah usaha/perusahaan ini menggunakan produk karya seni, sastra, des…
+n.`halal_label` AS `halal_label`   -- a. Apakah usaha/perusahaan ini menghasilkan produk bersertifikat halal…
+n.`halal_value` AS `halal_value`   -- a. Apakah usaha/perusahaan ini menghasilkan produk bersertifikat halal…
+n.`sudah_halal` AS `sudah_halal`   -- b. Berapa jumlah varian produk yang sudah bersertifikat halal BPJPH?
+n.`belum_halal` AS `belum_halal`   -- c. Berapa jumlah varian produk yang belum bersertifikat halal BPJPH?
+n.`izin_edar_label` AS `izin_edar_label`   -- a. Apakah usaha/perusahaan ini memiliki izin edar? Rincian 20 hanya di…
+n.`izin_edar_value` AS `izin_edar_value`   -- a. Apakah usaha/perusahaan ini memiliki izin edar? Rincian 20 hanya di…
+n.`sudah_bpom` AS `sudah_bpom`   -- b. Berapa jumlah varian produk yang sudah memiliki izin edar BPOM?
+n.`belum_bpom` AS `belum_bpom`   -- c. Berapa jumlah varian produk yang belum memiliki izin edar BPOM?
+n.`mitra_kdkmp_label` AS `mitra_kdkmp_label`   -- Apakah usaha/perusahaan ini bermitra dengan Koperasi Desa/Kelurahan Me…
+n.`mitra_kdkmp_value` AS `mitra_kdkmp_value`   -- Apakah usaha/perusahaan ini bermitra dengan Koperasi Desa/Kelurahan Me…
+n.`peran_mbg_label` AS `peran_mbg_label`   -- Apakah usaha/perusahaan ini terlibat dalam program Makan Bergizi Grati…
+n.`peran_mbg_value` AS `peran_mbg_value`   -- Apakah usaha/perusahaan ini terlibat dalam program Makan Bergizi Grati…
+n.`barang_non_pddk_label` AS `barang_non_pddk_label`   -- a. Penjualan dan/atau pembelian barang
+n.`barang_non_pddk_value` AS `barang_non_pddk_value`   -- a. Penjualan dan/atau pembelian barang
+n.`jasa_non_pddk_label` AS `jasa_non_pddk_label`   -- b. Penjualan jasa
+n.`jasa_non_pddk_value` AS `jasa_non_pddk_value`   -- b. Penjualan jasa
+n.`beli_jasa_non_pddk_label` AS `beli_jasa_non_pddk_label`   -- c. Pembelian jasa
+n.`beli_jasa_non_pddk_value` AS `beli_jasa_non_pddk_value`   -- c. Pembelian jasa
+n.`tk_laki` AS `tk_laki`   -- a1. Pekerja laki-laki
+n.`tk_pr` AS `tk_pr`   -- b1. Pekerja perempuan
+n.`total_tk_jk` AS `total_tk_jk`   -- c1. Total pekerja (a1+b1)
+n.`cek_tk_jk_pml_label` AS `cek_tk_jk_pml_label`   -- Cek Pekerja (c1) (Diisi oleh PML)
+n.`cek_tk_jk_pml_value` AS `cek_tk_jk_pml_value`   -- Cek Pekerja (c1) (Diisi oleh PML)
+n.`tk_dibayar` AS `tk_dibayar`   -- a2. Pekerja dibayar
+n.`tk_tdk_dibayar` AS `tk_tdk_dibayar`   -- b2. Pekerja tidak dibayar
+n.`total_tk_bayar` AS `total_tk_bayar`   -- c2. Total pekerja (a2+b2)
+n.`cek_tk_bayar_pml_label` AS `cek_tk_bayar_pml_label`   -- Cek Pekerja (24. c2) (Diisi oleh PML)
+n.`cek_tk_bayar_pml_value` AS `cek_tk_bayar_pml_value`   -- Cek Pekerja (24. c2) (Diisi oleh PML)
+n.`tahun_operasi` AS `tahun_operasi`   -- Tahun berapa usaha/perusahaan ini mulai beroperasi secara komersial ? …
+n.`gaji` AS `gaji`   -- a. Total upah dan gaji, serta jaminan sosial pegawai
+n.`biaya_produksi` AS `biaya_produksi`   -- b. Biaya produksi
+n.`biaya_pembelian` AS `biaya_pembelian`   -- c. Biaya pembelian barang yang terjual
+n.`operasional` AS `operasional`   -- d. Biaya operasional (air, listrik, gas, internet, pulsa, pemeliharaan…
+n.`non_operasional` AS `non_operasional`   -- e. Biaya non-operasional
+n.`total_pengeluaran` AS `total_pengeluaran`   -- f. Total pengeluaran (a+b+c+d+e)
+n.`cek_output26f_pml_label` AS `cek_output26f_pml_label`   -- Cek Rincian Pengeluaran 2025 (Diisi oleh PML)
+n.`cek_output26f_pml_value` AS `cek_output26f_pml_value`   -- Cek Rincian Pengeluaran 2025 (Diisi oleh PML)
+n.`nilai_pendapatan` AS `nilai_pendapatan`   -- a. Nilai narasi barang dan jasa
+n.`pendapatan_lain` AS `pendapatan_lain`   -- b. Pendapatan lainnya yang dihasilkan perusahaan
+n.`total_pendapatan` AS `total_pendapatan`   -- c. Total nilai narasi (a+b)
+n.`cek_input27c_pml_label` AS `cek_input27c_pml_label`   -- Cek Rincian Pendapatan 2025 (Diisi oleh PML)
+n.`cek_input27c_pml_value` AS `cek_input27c_pml_value`   -- Cek Rincian Pendapatan 2025 (Diisi oleh PML)
+n.`pendapatan_online` AS `pendapatan_online`   -- d. Berapa persentase pendapatan yang dilakukan secara online ?
+n.`aset_usaha_thn` AS `aset_usaha_thn`   -- a. Nilai aset tanah dan bangunan pada 31 Desember 2025
+n.`aset_lain_thn` AS `aset_lain_thn`   -- b. Nilai aset selain tanah dan bangunan pada 31 Desember 2025
+n.`total_aset_thn` AS `total_aset_thn`   -- c. Nilai total aset pada 31 Desember 2025
+n.`rentang_aset_thn_label` AS `rentang_aset_thn_label`   -- c1. Jika tidak dapat mengisikan nilai nominal, pilih nilai total aset …
+n.`rentang_aset_thn_value` AS `rentang_aset_thn_value`   -- c1. Jika tidak dapat mengisikan nilai nominal, pilih nilai total aset …
+n.`luas_tanah_thn` AS `luas_tanah_thn`   -- d. Berapa luas tanah yang dikuasai dan digunakan untuk kegiatan usaha …
+n.`cek_asetThn_pml_label` AS `cek_asetThn_pml_label`   -- Cek Rincian Aset 31 Des 2025 (Diisi oleh PML)
+n.`cek_asetThn_pml_value` AS `cek_asetThn_pml_value`   -- Cek Rincian Aset 31 Des 2025 (Diisi oleh PML)
+n.`pribadi` AS `pribadi`   -- a. Pribadi/Perorangan
+n.`non_profit` AS `non_profit`   -- b. Lembaga Nonprofit yang Melayani Rumah Tangga
+n.`publik` AS `publik`   -- c. Korporasi Publik
+n.`non_publik` AS `non_publik`   -- d. Korporasi Non Publik
+n.`pemerintah` AS `pemerintah`   -- e. Pemerintah
+n.`asing` AS `asing`   -- f. Asing
+n.`info_total` AS `info_total`   -- g. Total (a+b+c+d+e+f) = 100 %
+n.`gaji_bln` AS `gaji_bln`   -- a. Total upah dan gaji, serta jaminan sosial pegawai
+n.`biaya_produksi_bln` AS `biaya_produksi_bln`   -- b. Biaya produksi
+n.`biaya_pembelian_bln` AS `biaya_pembelian_bln`   -- c. Biaya pembelian barang yang terjual
+n.`operasional_bln` AS `operasional_bln`   -- d. Biaya operasional (air, listrik, gas, internet, pulsa, pemeliharaan…
+n.`non_operasional_bln` AS `non_operasional_bln`   -- e. Biaya non-operasional
+n.`cek_output30f_pml_label` AS `cek_output30f_pml_label`   -- Cek Rincian Pengeluaran di satu bulan terakhir (Diisi oleh PML)
+n.`cek_output30f_pml_value` AS `cek_output30f_pml_value`   -- Cek Rincian Pengeluaran di satu bulan terakhir (Diisi oleh PML)
+n.`total_pengeluaran_bln` AS `total_pengeluaran_bln`   -- f. Total pengeluaran (a+b+c+d+e)
+n.`nilai_pendapatan_bln` AS `nilai_pendapatan_bln`   -- a. Nilai narasi barang dan jasa
+n.`pendapatan_lain_bln` AS `pendapatan_lain_bln`   -- b. Pendapatan lainnya yang dihasilkan
+n.`total_pendapatan_bln` AS `total_pendapatan_bln`   -- c. Total nilai narasi (a+b)
+n.`cek_input31c_pml_label` AS `cek_input31c_pml_label`   -- Cek Rincian Pendapatan di satu bulan terakhir (Diisi oleh PML)
+n.`cek_input31c_pml_value` AS `cek_input31c_pml_value`   -- Cek Rincian Pendapatan di satu bulan terakhir (Diisi oleh PML)
+n.`pendapatan_online_bln` AS `pendapatan_online_bln`   -- d. Berapa persentase pendapatan yang dilakukan secara online ?
+n.`aset_tanah_bln` AS `aset_tanah_bln`   -- a. Nilai aset tanah dan bangunan pada akhir bulan yang lalu
+n.`aset_lain_bln` AS `aset_lain_bln`   -- b. Nilai aset selain tanah dan bangunan pada akhir bulan yang lalu
+n.`total_aset_bln` AS `total_aset_bln`   -- c. Nilai total aset pada akhir bulan yang lalu*
+n.`rentang_aset_bln_label` AS `rentang_aset_bln_label`   -- c1. Jika tidak dapat mengisikan nilai nominal, pilih nilai total aset …
+n.`rentang_aset_bln_value` AS `rentang_aset_bln_value`   -- c1. Jika tidak dapat mengisikan nilai nominal, pilih nilai total aset …
+n.`luas_tanah_bln` AS `luas_tanah_bln`   -- d. Berapa luas tanah yang dikuasai dan digunakan untuk kegiatan usaha …
+n.`cek_asetBln_pml_label` AS `cek_asetBln_pml_label`   -- Cek Rincian aset pada akhir bulan yang lalu (Diisi oleh PML)
+n.`cek_asetBln_pml_value` AS `cek_asetBln_pml_value`   -- Cek Rincian aset pada akhir bulan yang lalu (Diisi oleh PML)
+n.`pribadi_didirikan` AS `pribadi_didirikan`   -- a. Pribadi/Perorangan
+n.`nonprofit_didirikan` AS `nonprofit_didirikan`   -- b. Lembaga Nonprofit yang Melayani Rumah Tangga
+n.`publik_didirikan` AS `publik_didirikan`   -- c. Korporasi publik (%)
+n.`nonpublik_didirikan` AS `nonpublik_didirikan`   -- d. Korporasi Non Publik
+n.`pemerintah_didirikan` AS `pemerintah_didirikan`   -- e. Pemerintah
+n.`asing_didirikan` AS `asing_didirikan`   -- f. Asing
+n.`info_total_didirikan` AS `info_total_didirikan`   -- g. Total (a+b+c+d+e+f) = 100 %
+
+-- [LAINNYA (variabel sistem kuesioner)]
+-- n.`pilih_umkm_options` AS `pilih_umkm_options`   -- NONAKTIF: daftar opsi UMKM satu SLS (bisa sangat panjang)
+n.`kode_keberadaan_usaha` AS `kode_keberadaan_usaha`   -- Pilihan untuk keberadaan Usaha
+n.`skala_usaha` AS `skala_usaha`   -- skala_usaha
+n.`is_prelist2` AS `is_prelist2`   -- Is_Prelist2
+n.`id_pmss` AS `id_pmss`   -- id_pmss
+n.`idsbr` AS `idsbr`   -- ID SBR
+n.`alamat_usaha_var` AS `alamat_usaha_var`   -- c. Alamat usaha/perusahaan
+n.`alamat_usaha` AS `alamat_usaha`   -- alamat_usaha
+n.`hasilCekNIB` AS `hasilCekNIB`   -- ​
+n.`pengusaha_var_prelist` AS `pengusaha_var_prelist`   -- pengusaha_var_prelist
+n.`hasilPemadananNIK_l` AS `hasilPemadananNIK_l`   -- Hasil Pengecekkan NIK
+n.`jenis_kegiatan` AS `jenis_kegiatan`   -- jenis_kegiatan
+n.`kbli_prelist` AS `kbli_prelist`   -- kbli_prelist
+n.`kbli_genai_cawi` AS `kbli_genai_cawi`   -- kbli_genai_cawi
+n.`kbli_cawi` AS `kbli_cawi`   -- kbli_cawi
+n.`kbli_akhir` AS `kbli_akhir`   -- KBLI Akhir
+n.`kategori_2025` AS `kategori_2025`   -- kategori_2025
+n.`msg_error_kategori` AS `msg_error_kategori`
+n.`total_tk_jk_var` AS `total_tk_jk_var`   -- total_tk_jk_var
+n.`total_tk_bayar_var` AS `total_tk_bayar_var`   -- total_tk_bayar_var
+n.`total_pengeluaran_var` AS `total_pengeluaran_var`   -- total_pengeluaran_var
+n.`total_pendapatan_var` AS `total_pendapatan_var`   -- total_pendapatan_var
+n.`total_aset_thn_var` AS `total_aset_thn_var`   -- total_aset_thn_var
+n.`info_total_var` AS `info_total_var`   -- info_total_var
+n.`total_pengeluaran_bln_var` AS `total_pengeluaran_bln_var`   -- total_pengeluaran_bln
+n.`total_pendapatan_bln_var` AS `total_pendapatan_bln_var`   -- total_pendapatan_bln_var
+n.`cek5` AS `cek5`   -- New Question
+n.`info_total_didirikan_var` AS `info_total_didirikan_var`   -- info_total_didirikan_var
+
+-- @QUERY
+WITH asg AS (          -- >>> CAKUPAN: sama dengan query_geotag, per kecamatan <<<
+    SELECT a.assignment_id, a.assignment_date_modified, a.survey_period_id,
+           a.assignment_status_alias, a.mode, a.code_identity, a.data1, a.data6,
+           a.level_3_full_code, a.level_3_name, a.level_4_full_code, a.level_4_name,
+           a.level_5_full_code, a.level_5_name, a.level_6_full_code, a.level_6_name
+    FROM tgr_fd68e454.base_table_assignment a
+    WHERE a.level_2_full_code = '{{KAB}}'
+      AND a.level_3_full_code = '{{KEC}}'
+      AND a.is_active = 1
+      AND UPPER(COALESCE(a.assignment_status_alias, '')) NOT IN ('OPEN', 'DRAFT')
+),
+rv AS (           -- versi data terbaru root_table per assignment
+    SELECT r.assignment_id, MAX(r.assignment_date_modified) AS adm
+    FROM tgr_fd68e454.root_table r
+    INNER JOIN asg g ON g.assignment_id = r.assignment_id
+    GROUP BY r.assignment_id
+),
+nv AS (           -- versi data terbaru se2026_nested per assignment
+    SELECT n.assignment_id, MAX(n.assignment_date_modified) AS adm
+    FROM tgr_fd68e454.se2026_nested n
+    INNER JOIN asg g ON g.assignment_id = n.assignment_id
+    GROUP BY n.assignment_id
+)
+SELECT
+/*KOLOM*/
+FROM asg a
+INNER JOIN rv
+        ON rv.assignment_id = a.assignment_id
+INNER JOIN tgr_fd68e454.root_table r
+        ON r.assignment_id = rv.assignment_id
+       AND r.assignment_date_modified = rv.adm
+LEFT JOIN nv
+        ON nv.assignment_id = a.assignment_id
+LEFT JOIN tgr_fd68e454.se2026_nested n
+        ON n.assignment_id = nv.assignment_id
+       AND n.assignment_date_modified = nv.adm
+WHERE NULLIF(TRIM(r.geotag_latitude), '')  IS NOT NULL    -- syarat geotag (sama dengan query_geotag)
+  AND NULLIF(TRIM(r.geotag_longitude), '') IS NOT NULL
+ORDER BY a.assignment_id, n.index1
+LIMIT 9000 OFFSET 0

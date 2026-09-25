@@ -1,0 +1,90 @@
+-- =====================================================================
+-- DATASET : meteran — Meteran listrik PLN (nested_meteran)
+-- SATUAN  : 1 baris = 1 meteran.
+-- Gabungkan ke file usaha lewat assignment_id.
+-- =====================================================================
+-- ---------------------------------------------------------------------
+-- FORMAT FILE (dibaca userscript "Tarik Data Lebar SE2026"):
+--   -- @KUNCI  : kolom kunci penggabung, ikut di SETIAP grup query.
+--   -- @KOLOM  : satu baris = satu kolom (ekspresi + AS alias). Script memecahnya
+--                jadi grup berisi (25 - jumlah kunci) kolom. Baris diawali '--'
+--                diabaikan, jadi kolom bisa dinonaktifkan dengan menambah '-- '.
+--   -- @QUERY  : template query. /*KOLOM*/ diganti kunci + kolom grup,
+--                {{KAB}} dan {{KEC}} diganti kode wilayah dari popup.
+-- ATURAN: alias tidak boleh kembar; SELECT terluar tanpa GROUP BY/DISTINCT;
+--         ORDER BY terakhir harus unik & diikuti LIMIT 9000 OFFSET 0.
+-- ---------------------------------------------------------------------
+
+-- @KUNCI
+a.assignment_id AS `assignment_id`
+CONCAT('', m.index1) AS `index1`
+
+-- @KOLOM
+
+-- [IDENTITAS ASSIGNMENT]
+a.`level_3_full_code` AS `level_3_full_code`   -- kode kecamatan
+a.`level_4_full_code` AS `level_4_full_code`   -- kode desa
+a.`level_4_name` AS `level_4_name`
+a.`level_6_full_code` AS `level_6_full_code`   -- kode sub-SLS
+a.`level_6_name` AS `level_6_name`
+a.`assignment_status_alias` AS `assignment_status_alias`
+r.`nama_kk` AS `nama_kk_root`   -- nama KK dari root_table (bantu baca)
+CONCAT('https://fasih-sm.bps.go.id/app/assignment/', a.survey_period_id, '/', a.assignment_id) AS `link_fasih`
+m.`assignment_date_modified` AS `versi_roster`
+
+-- ===================== nested_meteran (m.) =====================
+
+-- [SE2026 - L BLOK IV]
+m.`urutan_meteran_lain` AS `urutan_meteran_lain`   -- Meteran ke-
+m.`daya_terpasang_label` AS `daya_terpasang_label`   -- b. Berapa daya yang terpasang di rumah ini?
+m.`daya_terpasang_value` AS `daya_terpasang_value`   -- b. Berapa daya yang terpasang di rumah ini?
+m.`id_pln_pilih_label` AS `id_pln_pilih_label`   -- c. Sebutkan ID Pelanggan PLN atau Nomor Meteran
+m.`id_pln_pilih_value` AS `id_pln_pilih_value`   -- c. Sebutkan ID Pelanggan PLN atau Nomor Meteran
+m.`id_pelanggan` AS `id_pelanggan`   -- ID Pelanggan PLN
+m.`no_meteran` AS `no_meteran`   -- Nomor Meteran
+
+-- [LAINNYA (variabel sistem kuesioner)]
+m.`hasilCekIdPel` AS `hasilCekIdPel`   -- ​
+m.`hasilCekMeteran` AS `hasilCekMeteran`   -- ​
+
+-- @QUERY
+WITH asg AS (          -- >>> CAKUPAN: sama dengan query_geotag, per kecamatan <<<
+    SELECT a.assignment_id, a.assignment_date_modified, a.survey_period_id,
+           a.assignment_status_alias, a.mode, a.code_identity, a.data1, a.data6,
+           a.level_3_full_code, a.level_3_name, a.level_4_full_code, a.level_4_name,
+           a.level_5_full_code, a.level_5_name, a.level_6_full_code, a.level_6_name
+    FROM tgr_fd68e454.base_table_assignment a
+    WHERE a.level_2_full_code = '{{KAB}}'
+      AND a.level_3_full_code = '{{KEC}}'
+      AND a.is_active = 1
+      AND UPPER(COALESCE(a.assignment_status_alias, '')) NOT IN ('OPEN', 'DRAFT')
+),
+rv AS (           -- versi data terbaru root_table per assignment
+    SELECT r.assignment_id, MAX(r.assignment_date_modified) AS adm
+    FROM tgr_fd68e454.root_table r
+    INNER JOIN asg g ON g.assignment_id = r.assignment_id
+    GROUP BY r.assignment_id
+),
+xv AS (           -- versi data terbaru nested_meteran per assignment
+    SELECT m.assignment_id, MAX(m.assignment_date_modified) AS adm
+    FROM tgr_fd68e454.nested_meteran m
+    INNER JOIN asg g ON g.assignment_id = m.assignment_id
+    GROUP BY m.assignment_id
+)
+SELECT
+/*KOLOM*/
+FROM asg a
+INNER JOIN rv
+        ON rv.assignment_id = a.assignment_id
+INNER JOIN tgr_fd68e454.root_table r
+        ON r.assignment_id = rv.assignment_id
+       AND r.assignment_date_modified = rv.adm
+INNER JOIN xv
+        ON xv.assignment_id = a.assignment_id
+INNER JOIN tgr_fd68e454.nested_meteran m
+        ON m.assignment_id = xv.assignment_id
+       AND m.assignment_date_modified = xv.adm
+WHERE NULLIF(TRIM(r.geotag_latitude), '')  IS NOT NULL    -- syarat geotag (sama dengan query_geotag)
+  AND NULLIF(TRIM(r.geotag_longitude), '') IS NOT NULL
+ORDER BY a.assignment_id, m.index1
+LIMIT 9000 OFFSET 0

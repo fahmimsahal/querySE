@@ -1,0 +1,162 @@
+-- =====================================================================
+-- DATASET : art_sosek — Anggota keluarga, pendidikan/pekerjaan/pendapatan/kesehatan (nested_dtsen_var)
+-- SATUAN  : 1 baris = 1 anggota keluarga (roster nested_dtsen_var).
+-- index1 roster ini BELUM terverifikasi sama dengan index1 nested_dtsen;
+-- cek dulu (lihat panduan) sebelum menggabungkan kedua file ART per orang.
+-- =====================================================================
+-- ---------------------------------------------------------------------
+-- FORMAT FILE (dibaca userscript "Tarik Data Lebar SE2026"):
+--   -- @KUNCI  : kolom kunci penggabung, ikut di SETIAP grup query.
+--   -- @KOLOM  : satu baris = satu kolom (ekspresi + AS alias). Script memecahnya
+--                jadi grup berisi (25 - jumlah kunci) kolom. Baris diawali '--'
+--                diabaikan, jadi kolom bisa dinonaktifkan dengan menambah '-- '.
+--   -- @QUERY  : template query. /*KOLOM*/ diganti kunci + kolom grup,
+--                {{KAB}} dan {{KEC}} diganti kode wilayah dari popup.
+-- ATURAN: alias tidak boleh kembar; SELECT terluar tanpa GROUP BY/DISTINCT;
+--         ORDER BY terakhir harus unik & diikuti LIMIT 9000 OFFSET 0.
+-- ---------------------------------------------------------------------
+
+-- @KUNCI
+a.assignment_id AS `assignment_id`
+CONCAT('', v.index1) AS `index1`
+
+-- @KOLOM
+
+-- [IDENTITAS ASSIGNMENT]
+a.`level_3_full_code` AS `level_3_full_code`   -- kode kecamatan
+a.`level_4_full_code` AS `level_4_full_code`   -- kode desa
+a.`level_4_name` AS `level_4_name`
+a.`level_6_full_code` AS `level_6_full_code`   -- kode sub-SLS
+a.`level_6_name` AS `level_6_name`
+a.`assignment_status_alias` AS `assignment_status_alias`
+r.`nama_kk` AS `nama_kk_root`   -- nama KK dari root_table (bantu baca)
+CONCAT('https://fasih-sm.bps.go.id/app/assignment/', a.survey_period_id, '/', a.assignment_id) AS `link_fasih`
+v.`assignment_date_modified` AS `versi_roster`
+
+-- ===================== nested_dtsen_var (v.) =====================
+
+-- [SE2026 - L BLOK III]
+v.`no_urut_kk_var` AS `no_urut_kk_var`   -- Nomor urut anggota keluarga
+v.`nama_dtsen_var` AS `nama_dtsen_var`   -- Nama anggota keluarga
+v.`sekolah_label` AS `sekolah_label`   -- Partisipasi sekolah NAME
+v.`sekolah_value` AS `sekolah_value`   -- Partisipasi sekolah NAME
+v.`ijazah_label` AS `ijazah_label`   -- Ijazah/STTB tertinggi yang dimiliki NAME (usia 5 tahun ke atas) Ijazah…
+v.`ijazah_value` AS `ijazah_value`   -- Ijazah/STTB tertinggi yang dimiliki NAME (usia 5 tahun ke atas) Ijazah…
+v.`profesi_label` AS `profesi_label`   -- Profesi Pekerjaan Utama NAME (usia 10 tahun ke atas)
+v.`profesi_value` AS `profesi_value`   -- Profesi Pekerjaan Utama NAME (usia 10 tahun ke atas)
+v.`profesi_lainnya` AS `profesi_lainnya`   -- Profesi Pekerjaan Utama lainnya:
+v.`status_kerja_label` AS `status_kerja_label`   -- Status Kedudukan Dalam Pekerjaan Utama NAME
+v.`status_kerja_value` AS `status_kerja_value`   -- Status Kedudukan Dalam Pekerjaan Utama NAME
+v.`pendapatan_pekerjaan_label` AS `pendapatan_pekerjaan_label`   -- a. Pendapatan dari pekerjaan baik berupa uang maupun barang/jasa (gaji…
+v.`pendapatan_pekerjaan_value` AS `pendapatan_pekerjaan_value`   -- a. Pendapatan dari pekerjaan baik berupa uang maupun barang/jasa (gaji…
+v.`pend_gaji` AS `pend_gaji`   -- Upah/Gaji
+v.`pend_tunjangan` AS `pend_tunjangan`   -- Tunjangan
+v.`pend_uangmkn` AS `pend_uangmkn`   -- Uang Makan
+v.`pend_honor` AS `pend_honor`   -- Honor
+v.`pend_lembur` AS `pend_lembur`   -- Lembur
+v.`pend_lainnya` AS `pend_lainnya`   -- Lainnya
+v.`nilai_pend_pekerjaan` AS `nilai_pend_pekerjaan`   -- a1. Total Pendapatan (a+b+c+d+e+f)
+v.`pendapatan_usaha_label` AS `pendapatan_usaha_label`   -- b. Pendapatan dari usaha, baik offline (warung, kos-kosan, dll) maupun…
+v.`pendapatan_usaha_value` AS `pendapatan_usaha_value`   -- b. Pendapatan dari usaha, baik offline (warung, kos-kosan, dll) maupun…
+v.`pend_usaha` AS `pend_usaha`   -- b1. Total Pendapatan
+v.`pend_usaha_lain_label` AS `pend_usaha_lain_label`   -- c. Penerimaan pendapatan lain (transfer/pemberian/passive income seper…
+v.`pend_usaha_lain_value` AS `pend_usaha_lain_value`   -- c. Penerimaan pendapatan lain (transfer/pemberian/passive income seper…
+v.`nilai_pend_lain` AS `nilai_pend_lain`   -- c1. Total Pendapatan
+v.`rekening_label` AS `rekening_label`   -- Apakah NAME memiliki rekening aktif atau dompet digital?
+v.`rekening_value` AS `rekening_value`   -- Apakah NAME memiliki rekening aktif atau dompet digital?
+v.`dis_fisik_label` AS `dis_fisik_label`   -- Disabilitas Fisik
+v.`dis_fisik_value` AS `dis_fisik_value`   -- Disabilitas Fisik
+v.`dis_mental_label` AS `dis_mental_label`   -- Disabilitas Mental
+v.`dis_mental_value` AS `dis_mental_value`   -- Disabilitas Mental
+v.`dis_intelek_label` AS `dis_intelek_label`   -- Disabilitas Intelektual
+v.`dis_intelek_value` AS `dis_intelek_value`   -- Disabilitas Intelektual
+v.`dis_netra_label` AS `dis_netra_label`   -- Disabilitas Sensorik Netra
+v.`dis_netra_value` AS `dis_netra_value`   -- Disabilitas Sensorik Netra
+v.`dis_rungu_label` AS `dis_rungu_label`   -- Disabilitas Sensorik Rungu
+v.`dis_rungu_value` AS `dis_rungu_value`   -- Disabilitas Sensorik Rungu
+v.`dis_wicara_label` AS `dis_wicara_label`   -- Disabilitas Sensorik Wicara
+v.`dis_wicara_value` AS `dis_wicara_value`   -- Disabilitas Sensorik Wicara
+v.`sakit_hipertensi_label` AS `sakit_hipertensi_label`   -- Hipertensi (tekanan darah tinggi)
+v.`sakit_hipertensi_value` AS `sakit_hipertensi_value`   -- Hipertensi (tekanan darah tinggi)
+v.`sakit_rematik_label` AS `sakit_rematik_label`   -- Rematik
+v.`sakit_rematik_value` AS `sakit_rematik_value`   -- Rematik
+v.`sakit_asma_label` AS `sakit_asma_label`   -- Asma
+v.`sakit_asma_value` AS `sakit_asma_value`   -- Asma
+v.`sakit_jantung_label` AS `sakit_jantung_label`   -- Masalah jantung
+v.`sakit_jantung_value` AS `sakit_jantung_value`   -- Masalah jantung
+v.`sakit_diabetes_label` AS `sakit_diabetes_label`   -- Diabetes (kencing manis)
+v.`sakit_diabetes_value` AS `sakit_diabetes_value`   -- Diabetes (kencing manis)
+v.`sakit_tbc_label` AS `sakit_tbc_label`   -- Tuberkulosis (TBC)
+v.`sakit_tbc_value` AS `sakit_tbc_value`   -- Tuberkulosis (TBC)
+v.`sakit_stroke_label` AS `sakit_stroke_label`   -- Stroke
+v.`sakit_stroke_value` AS `sakit_stroke_value`   -- Stroke
+v.`sakit_kanker_label` AS `sakit_kanker_label`   -- Kanker atau tumor ganas
+v.`sakit_kanker_value` AS `sakit_kanker_value`   -- Kanker atau tumor ganas
+v.`sakit_hemofilia_label` AS `sakit_hemofilia_label`   -- Hemofilia
+v.`sakit_hemofilia_value` AS `sakit_hemofilia_value`   -- Hemofilia
+v.`sakit_ginjal_label` AS `sakit_ginjal_label`   -- Gagal ginjal
+v.`sakit_ginjal_value` AS `sakit_ginjal_value`   -- Gagal ginjal
+v.`sakit_hiv_label` AS `sakit_hiv_label`   -- HIV/AIDS
+v.`sakit_hiv_value` AS `sakit_hiv_value`   -- HIV/AIDS
+v.`sakit_kolestrol_label` AS `sakit_kolestrol_label`   -- Kolestrol
+v.`sakit_kolestrol_value` AS `sakit_kolestrol_value`   -- Kolestrol
+v.`sakit_sirosis_label` AS `sakit_sirosis_label`   -- Sirosis hati
+v.`sakit_sirosis_value` AS `sakit_sirosis_value`   -- Sirosis hati
+v.`sakit_talasemia_label` AS `sakit_talasemia_label`   -- Talasemia
+v.`sakit_talasemia_value` AS `sakit_talasemia_value`   -- Talasemia
+v.`sakit_leukemia_label` AS `sakit_leukemia_label`   -- Leukemia
+v.`sakit_leukemia_value` AS `sakit_leukemia_value`   -- Leukemia
+v.`sakit_alzheimer_label` AS `sakit_alzheimer_label`   -- Alzheimer
+v.`sakit_alzheimer_value` AS `sakit_alzheimer_value`   -- Alzheimer
+v.`sakit_lainnya_label` AS `sakit_lainnya_label`   -- Lainnya
+v.`sakit_lainnya_value` AS `sakit_lainnya_value`   -- Lainnya
+
+-- [LAINNYA (variabel sistem kuesioner)]
+v.`ec_art_dtsen` AS `ec_art_dtsen`   -- ec_art_dtsen
+v.`ec_art_pendapatan` AS `ec_art_pendapatan`   -- ec_art_pendapatan
+v.`set_sekolah_prelist` AS `set_sekolah_prelist`   -- set_sekolah_prelist
+v.`sekolah_prelist` AS `sekolah_prelist`   -- Sekolah Prelist
+v.`set_ijazah_prelist` AS `set_ijazah_prelist`   -- set_ijazah_prelist
+v.`ijazah_prelist` AS `ijazah_prelist`   -- Ijazah Prelist
+
+-- @QUERY
+WITH asg AS (          -- >>> CAKUPAN: sama dengan query_geotag, per kecamatan <<<
+    SELECT a.assignment_id, a.assignment_date_modified, a.survey_period_id,
+           a.assignment_status_alias, a.mode, a.code_identity, a.data1, a.data6,
+           a.level_3_full_code, a.level_3_name, a.level_4_full_code, a.level_4_name,
+           a.level_5_full_code, a.level_5_name, a.level_6_full_code, a.level_6_name
+    FROM tgr_fd68e454.base_table_assignment a
+    WHERE a.level_2_full_code = '{{KAB}}'
+      AND a.level_3_full_code = '{{KEC}}'
+      AND a.is_active = 1
+      AND UPPER(COALESCE(a.assignment_status_alias, '')) NOT IN ('OPEN', 'DRAFT')
+),
+rv AS (           -- versi data terbaru root_table per assignment
+    SELECT r.assignment_id, MAX(r.assignment_date_modified) AS adm
+    FROM tgr_fd68e454.root_table r
+    INNER JOIN asg g ON g.assignment_id = r.assignment_id
+    GROUP BY r.assignment_id
+),
+xv AS (           -- versi data terbaru nested_dtsen_var per assignment
+    SELECT v.assignment_id, MAX(v.assignment_date_modified) AS adm
+    FROM tgr_fd68e454.nested_dtsen_var v
+    INNER JOIN asg g ON g.assignment_id = v.assignment_id
+    GROUP BY v.assignment_id
+)
+SELECT
+/*KOLOM*/
+FROM asg a
+INNER JOIN rv
+        ON rv.assignment_id = a.assignment_id
+INNER JOIN tgr_fd68e454.root_table r
+        ON r.assignment_id = rv.assignment_id
+       AND r.assignment_date_modified = rv.adm
+INNER JOIN xv
+        ON xv.assignment_id = a.assignment_id
+INNER JOIN tgr_fd68e454.nested_dtsen_var v
+        ON v.assignment_id = xv.assignment_id
+       AND v.assignment_date_modified = xv.adm
+WHERE NULLIF(TRIM(r.geotag_latitude), '')  IS NOT NULL    -- syarat geotag (sama dengan query_geotag)
+  AND NULLIF(TRIM(r.geotag_longitude), '') IS NOT NULL
+ORDER BY a.assignment_id, v.index1
+LIMIT 9000 OFFSET 0
