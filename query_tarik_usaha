@@ -1,0 +1,128 @@
+/* =====================================================================
+   SE2026 — DAFTAR SELURUH UNIT USAHA (BKU + USAHA KELUARGA)
+   Wilayah : Kabupaten Mesuji (1811)
+   Status  : sudah submit ke atas (selain OPEN & DRAFT)
+   Unit    : 1 baris = 1 unit usaha (se2026_nested)
+   Dikecualikan: kode_bang 4–9 (tidak punya roster usaha)
+   ===================================================================== */
+WITH params AS (
+    SELECT '1811' AS kab                    -- >>> UBAH DI SINI SAJA <
+),
+asg AS (
+    SELECT a.assignment_id,
+           a.assignment_date_modified,
+           a.survey_period_id,
+           a.level_3_full_code, a.level_3_name,
+           a.level_4_full_code, a.level_4_name,
+           a.level_5_full_code, a.level_5_name,
+           a.level_6_full_code, a.level_6_name,
+           TRIM(COALESCE(a.data1,'')) AS data1
+    FROM tgr_fd68e454.base_table_assignment a
+    CROSS JOIN params p
+    WHERE a.is_active = 1
+      AND a.level_2_full_code = p.kab
+      AND a.assignment_status_id > 0        -- >0 = selain OPEN & DRAFT
+      -- ============== OPSI KONDISI ==============
+      -- AND a.assignment_status_alias = 'APPROVED BY Pengawas'
+      -- AND a.level_3_full_code = '1811060'
+),
+rt0 AS (
+    SELECT r.assignment_id,
+           r.assignment_date_modified,
+           TRIM(COALESCE(r.kode_bang_value,''))    AS kode_bang_value,
+           TRIM(COALESCE(r.jenis_prelist,''))      AS jenis_prelist,
+           TRIM(COALESCE(r.nama_usaha_bang,''))    AS nama_usaha_bang,
+           TRIM(COALESCE(r.nama_kk,''))            AS nama_kk,
+           TRIM(COALESCE(r.nama_ak_lain,''))       AS nama_ak_lain,
+           TRIM(COALESCE(r.dtsen_nama_kk,''))      AS dtsen_nama_kk,
+           TRIM(COALESCE(r.nama_usaha_prelist,'')) AS nama_usaha_prelist,
+           TRIM(COALESCE(r.nama_lain,''))          AS nama_lain,
+           TRIM(COALESCE(r.nama_principal,''))     AS nama_principal,
+           TRIM(COALESCE(r.nama_lookup_umkm,''))   AS nama_lookup_umkm,
+           ROW_NUMBER() OVER (PARTITION BY r.assignment_id, r.assignment_date_modified
+                              ORDER BY r.assignment_id_timestamp DESC,
+                                       r.assignment_id ASC) AS rn
+    FROM tgr_fd68e454.root_table r
+),
+rt AS (
+    SELECT assignment_id, assignment_date_modified,
+           kode_bang_value, jenis_prelist,
+           nama_usaha_bang, nama_kk, nama_ak_lain, dtsen_nama_kk,
+           nama_usaha_prelist, nama_lain,
+           CASE WHEN LOCATE('label=', nama_principal) = 0 THEN nama_principal
+                WHEN LOCATE(',', SUBSTRING(nama_principal, LOCATE('label=', nama_principal) + 6)) > 0
+                     THEN TRIM(LEFT(SUBSTRING(nama_principal, LOCATE('label=', nama_principal) + 6),
+                                    LOCATE(',', SUBSTRING(nama_principal, LOCATE('label=', nama_principal) + 6)) - 1))
+                ELSE TRIM(REGEXP_REPLACE(SUBSTRING(nama_principal, LOCATE('label=', nama_principal) + 6), '[\\]\\}]+$', ''))
+           END AS nama_principal_bersih,
+           CASE WHEN LOCATE('label=', nama_lookup_umkm) = 0 THEN nama_lookup_umkm
+                WHEN LOCATE(',', SUBSTRING(nama_lookup_umkm, LOCATE('label=', nama_lookup_umkm) + 6)) > 0
+                     THEN TRIM(LEFT(SUBSTRING(nama_lookup_umkm, LOCATE('label=', nama_lookup_umkm) + 6),
+                                    LOCATE(',', SUBSTRING(nama_lookup_umkm, LOCATE('label=', nama_lookup_umkm) + 6)) - 1))
+                ELSE TRIM(REGEXP_REPLACE(SUBSTRING(nama_lookup_umkm, LOCATE('label=', nama_lookup_umkm) + 6), '[\\]\\}]+$', ''))
+           END AS nama_lookup_bersih
+    FROM rt0
+    WHERE rn = 1
+)
+SELECT
+    RIGHT(TRIM(a.level_3_full_code), 3)                                    AS kode_kec,
+    a.level_3_name                                                         AS nama_kec,
+    RIGHT(TRIM(a.level_4_full_code), 3)                                    AS kode_desa,
+    a.level_4_name                                                         AS nama_desa,
+    COALESCE(NULLIF(TRIM(COALESCE(a.level_6_full_code,'')), ''),
+             NULLIF(CONCAT(TRIM(COALESCE(a.level_5_full_code,'')), '00'), '00'),
+             '(kosong)')                                                   AS kode_subsls,
+    COALESCE(NULLIF(TRIM(COALESCE(a.level_6_name,'')),''),
+             NULLIF(TRIM(COALESCE(a.level_5_name,'')),''), '(kosong)')     AS nama_subsls,
+    CASE WHEN COALESCE(r.kode_bang_value,'') = '1'
+         THEN COALESCE(NULLIF(r.nama_usaha_bang,''),
+                       NULLIF(r.nama_principal_bersih,''),
+                       NULLIF(r.nama_lookup_bersih,''),
+                       NULLIF(r.nama_usaha_prelist,''),
+                       NULLIF(r.nama_kk,''),
+                       NULLIF(a.data1,''), '(kosong)')
+         ELSE COALESCE(NULLIF(r.nama_kk,''),
+                       NULLIF(r.dtsen_nama_kk,''),
+                       NULLIF(r.nama_ak_lain,''),
+                       NULLIF(r.nama_usaha_bang,''),
+                       NULLIF(r.nama_principal_bersih,''),
+                       NULLIF(r.nama_lookup_bersih,''),
+                       NULLIF(r.nama_usaha_prelist,''),
+                       NULLIF(r.nama_lain,''),
+                       NULLIF(a.data1,''), '(kosong)')
+    END                                                                    AS nama_assignment,
+    COALESCE(NULLIF(TRIM(COALESCE(n.nama_usaha,'')),''),
+             NULLIF(TRIM(COALESCE(n.nama_usaha_edit,'')),''), '(kosong)')  AS nama_usaha,
+    CASE WHEN COALESCE(r.kode_bang_value,'') = '1'             THEN 'BKU'
+         WHEN COALESCE(r.kode_bang_value,'') IN ('2','3')      THEN 'KELUARGA'
+         WHEN LOWER(COALESCE(r.jenis_prelist,'')) = 'keluarga' THEN 'KELUARGA'
+         WHEN COALESCE(r.nama_kk,'') <> ''                     THEN 'KELUARGA'
+         ELSE 'BKU' END                                                    AS jenis_assignment,
+    COALESCE(NULLIF(TRIM(COALESCE(n.keberadaan_usaha_label,'')),''),
+             CASE TRIM(COALESCE(n.keberadaan_usaha_value,''))
+                  WHEN '1'  THEN 'Ditemukan'
+                  WHEN '2'  THEN 'Baru'
+                  WHEN '3'  THEN 'Tutup'
+                  WHEN '4'  THEN 'Ganda'
+                  WHEN '9'  THEN 'Non Respon'
+                  WHEN '00' THEN 'Tidak Ditemukan'
+                  WHEN '0'  THEN 'Tidak Ditemukan'
+                  ELSE '(kosong)' END)                                     AS status_keberadaan,
+    CONCAT('https://fasih-sm.bps.go.id/app/assignment/',
+           CAST(a.survey_period_id AS CHAR), '/', a.assignment_id)          AS link_fasih
+    -- ============== OPSI VARIABEL (batas 25 kolom) ==============
+    -- n.idsbr, n.nib, n.kbli_akhir, n.skala_usaha, n.kategori,
+    -- a.level_5_full_code, a.level_5_name, r.kode_bang_value
+FROM asg a
+INNER JOIN tgr_fd68e454.se2026_nested n
+        ON n.assignment_id            = a.assignment_id
+       AND n.assignment_date_modified = a.assignment_date_modified
+LEFT JOIN rt r
+        ON r.assignment_id            = a.assignment_id
+       AND r.assignment_date_modified = a.assignment_date_modified
+WHERE COALESCE(r.kode_bang_value,'') NOT IN ('4','5','6','7','8','9')
+      -- OPSI: buang juga dokumen prelist usaha murni (tanpa baris root_table)
+      -- AND r.assignment_id IS NOT NULL
+ORDER BY a.level_4_full_code, a.level_5_full_code, a.level_6_full_code,
+         a.assignment_id, n.index1
+LIMIT 9000 OFFSET 0;
