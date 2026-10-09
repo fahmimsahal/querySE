@@ -1,0 +1,72 @@
+/* =====================================================================
+   SE2026 — COUNT DAFTAR SELURUH UNIT USAHA (BKU + USAHA KELUARGA)
+   Wilayah : Kabupaten Mesuji (1811)
+   Status  : sudah submit ke atas (selain OPEN & DRAFT)
+   Unit    : 1 baris = 1 unit usaha (se2026_nested)
+   ===================================================================== */
+WITH params AS (
+    SELECT '1811' AS kab                    -- >>> UBAH DI SINI SAJA <
+),
+asg AS (
+    SELECT a.assignment_id,
+           a.assignment_date_modified,
+           a.survey_period_id,
+           a.level_3_full_code, a.level_3_name,
+           a.level_4_full_code, a.level_4_name,
+           a.level_5_full_code, a.level_5_name,
+           a.level_6_full_code, a.level_6_name,
+           TRIM(COALESCE(a.data1,'')) AS data1
+    FROM tgr_fd68e454.base_table_assignment a
+    CROSS JOIN params p
+    WHERE a.is_active = 1
+      AND a.level_2_full_code = p.kab
+      AND a.assignment_status_id > 0        -- >0 = selain OPEN & DRAFT
+),
+rt0 AS (
+    SELECT r.assignment_id,
+           r.assignment_date_modified,
+           TRIM(COALESCE(r.kode_bang_value,''))    AS kode_bang_value,
+           TRIM(COALESCE(r.jenis_prelist,''))      AS jenis_prelist,
+           TRIM(COALESCE(r.nama_usaha_bang,''))    AS nama_usaha_bang,
+           TRIM(COALESCE(r.nama_kk,''))            AS nama_kk,
+           TRIM(COALESCE(r.nama_ak_lain,''))       AS nama_ak_lain,
+           TRIM(COALESCE(r.dtsen_nama_kk,''))      AS dtsen_nama_kk,
+           TRIM(COALESCE(r.nama_usaha_prelist,'')) AS nama_usaha_prelist,
+           TRIM(COALESCE(r.nama_lain,''))          AS nama_lain,
+           TRIM(COALESCE(r.nama_principal,''))     AS nama_principal,
+           TRIM(COALESCE(r.nama_lookup_umkm,''))   AS nama_lookup_umkm,
+           ROW_NUMBER() OVER (PARTITION BY r.assignment_id, r.assignment_date_modified
+                              ORDER BY r.assignment_id_timestamp DESC,
+                                       r.assignment_id ASC) AS rn
+    FROM tgr_fd68e454.root_table r
+),
+rt AS (
+    SELECT assignment_id, assignment_date_modified,
+           kode_bang_value, jenis_prelist,
+           nama_usaha_bang, nama_kk, nama_ak_lain, dtsen_nama_kk,
+           nama_usaha_prelist, nama_lain,
+           CASE WHEN LOCATE('label=', nama_principal) = 0 THEN nama_principal
+                WHEN LOCATE(',', SUBSTRING(nama_principal, LOCATE('label=', nama_principal) + 6)) > 0
+                     THEN TRIM(LEFT(SUBSTRING(nama_principal, LOCATE('label=', nama_principal) + 6),
+                                    LOCATE(',', SUBSTRING(nama_principal, LOCATE('label=', nama_principal) + 6)) - 1))
+                ELSE TRIM(REGEXP_REPLACE(SUBSTRING(nama_principal, LOCATE('label=', nama_principal) + 6), '[\\]\\}]+$', ''))
+           END AS nama_principal_bersih,
+           CASE WHEN LOCATE('label=', nama_lookup_umkm) = 0 THEN nama_lookup_umkm
+                WHEN LOCATE(',', SUBSTRING(nama_lookup_umkm, LOCATE('label=', nama_lookup_umkm) + 6)) > 0
+                     THEN TRIM(LEFT(SUBSTRING(nama_lookup_umkm, LOCATE('label=', nama_lookup_umkm) + 6),
+                                    LOCATE(',', SUBSTRING(nama_lookup_umkm, LOCATE('label=', nama_lookup_umkm) + 6)) - 1))
+                ELSE TRIM(REGEXP_REPLACE(SUBSTRING(nama_lookup_umkm, LOCATE('label=', nama_lookup_umkm) + 6), '[\\]\\}]+$', ''))
+           END AS nama_lookup_bersih
+    FROM rt0
+    WHERE rn = 1
+)
+SELECT 
+    COUNT(*) AS total_unit_usaha
+FROM asg a
+INNER JOIN tgr_fd68e454.se2026_nested n
+        ON n.assignment_id            = a.assignment_id
+       AND n.assignment_date_modified = a.assignment_date_modified
+LEFT JOIN rt r
+        ON r.assignment_id            = a.assignment_id
+       AND r.assignment_date_modified = a.assignment_date_modified
+WHERE COALESCE(r.kode_bang_value,'') NOT IN ('4','5','6','7','8','9');
