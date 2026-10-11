@@ -8,7 +8,7 @@ Tanggal : 2026-10-01
 Sumber          : [Reviewed] 23.09.2026 - Tabel Anomali Keluarga SE - Tambahan 2.xlsx, Sheet R.133
 Rule (rantab)   : (b4r17a=2|b=2|c=2|d=2|e=2|f=2|gi=2|hi=2) & tgl_submit < 08/07/2026
 Catatan         : b4r17a..hi = jumlah_tabung3kg, tabung5kg, kulkas, ac, emas, laptop, motor, mobil. tgl_submit diproksikan dari base_table_assignment.date_modified. Kolom jumlah_<aset> dipakai sebagai COALESCE(jumlah_<aset>_new, jumlah_<aset>) sesuai pola kueri_keluarga_pip.txt (jumlah_<aset>_new berisi nilai hasil koreksi admin, dipakai jika terisi); untuk mobil/motor ditambah fallback: jika hasil COALESCE null/0 tapi nilai_mobil/nilai_motor terisi, dianggap 1 unit. Memakai nilai effective (COALESCE _new) berarti kasus yang kode-2-nya sudah dikoreksi admin TIDAK lagi muncul di sini - sesuai tujuan tabel ini untuk memantau sisa kasus yang BELUM dikoreksi. Filter status keberadaan: CAST(r.ada_keluarga_value AS INT) IN (1,2) dan CAST(kk.keberadaan_dtsen_value AS INT) IN (1,5), dicek pada baris ART Kepala Keluarga (nested_dtsen.hubungan_value='1') sebagai status-of-record keluarga.
-Update          : + filter wilayah (param_wilayah), + running_time
+Update          : + filter wilayah (param_wilayah), + running_time; output dikurangi 3 kolom (level_1_code, level_5_code, running_time) agar tidak melebihi batas 25 kolom SQL Lab
 */
 
 WITH
@@ -95,7 +95,6 @@ base AS (
     )
 )
 SELECT
-  level_1_code,
   -- level_1_name,
   level_2_code,
   -- level_2_name,
@@ -103,7 +102,6 @@ SELECT
   -- level_3_name,
   level_4_code,
   -- level_4_name,
-  level_5_code,
   level_6_code,
   -- level_5_name,
   -- level_6_code,
@@ -128,9 +126,8 @@ SELECT
   nilai_motor,
   jumlah_mobil,
   jumlah_mobil_new,
-  nilai_mobil,
+  nilai_mobil
   -- date_modified,
-  NOW() AS running_time
 FROM base
 WHERE flag_jumlah_keluarga = 1
 ORDER BY level_1_code, level_2_code, level_3_code, level_4_code, level_5_code, level_6_code, assignment_id;
