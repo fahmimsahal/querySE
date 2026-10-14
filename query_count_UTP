@@ -1,20 +1,17 @@
 -- ============================================================================
--- SE2026 — COUNT PENDAMPING: DAFTAR USAHA PERTANIAN (keberadaan: Ditemukan/Baru)
--- Filter IDENTIK dengan query detail (daftar usaha pertanian).
--- Hasil: 1 angka (total_baris). Bagi dengan 9000 untuk menentukan jumlah
--- iterasi LIMIT/OFFSET saat menarik query detailnya.
+-- SE2026 — DAFTAR USAHA PERTANIAN — QUERY COUNT (filter identik dengan di atas)
 -- ============================================================================
-WITH params AS (                      -- >>> UBAH DI SINI SAJA (samakan dgn query detail) <<<
-    SELECT '1811' AS kab              -- 1811 = Kab. Mesuji
+WITH params AS (                      -- >>> UBAH DI SINI SAJA (samakan dengan query detail) <<<
+    SELECT '1811' AS kab
 ),
-asg AS (                              -- assignment aktif di kabupaten terpilih
+asg AS (
     SELECT a.assignment_id
     FROM tgr_fd68e454.base_table_assignment a
     CROSS JOIN params p
     WHERE a.is_active = 1
       AND a.level_2_full_code = p.kab
 ),
-ver AS (                              -- versi roster usaha paling baru per assignment
+ver AS (
     SELECT n.assignment_id,
            MAX(n.assignment_date_modified) AS ad_max
     FROM tgr_fd68e454.se2026_nested n
@@ -22,7 +19,7 @@ ver AS (                              -- versi roster usaha paling baru per assi
     WHERE n.level_2_full_code = p.kab
     GROUP BY n.assignment_id
 ),
-usa AS (                              -- roster usaha, hanya baris versi terbaru
+usa AS (
     SELECT n.assignment_id,
            n.keberadaan_usaha_value,
            n.kategori,
