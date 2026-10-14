@@ -1,0 +1,84 @@
+-- ============================================================================
+-- SE2026 — DAFTAR USAHA PERTANIAN (keberadaan: Ditemukan / Baru)
+-- Granularitas : 1 baris = 1 usaha (se2026_nested, versi roster terbaru)
+-- Cakupan      : Kabupaten pada CTE params
+-- Definisi pertanian (GABUNGAN, salah satu terpenuhi):
+--   a. kategori lapangan usaha diawali 'A'
+--   b. KBLI akhir diawali 01 / 02 / 03
+--   c. R9a jenis usaha = Usaha pertanian (label atau kode 6)
+-- Nilai ekonomi: blok TAHUNAN (R26f/R27c) terisi untuk usaha yang sudah
+--   beroperasi lebih dari setahun; blok BULANAN (R30f/R31c) terisi untuk usaha
+--   yang beroperasi kurang dari setahun. Alur kuesioner yang menentukan — satu
+--   usaha hanya mengisi salah satu blok, blok lainnya kosong (normal).
+-- ============================================================================
+WITH params AS (                      -- >>> UBAH DI SINI SAJA <<<
+    SELECT '1811' AS kab              -- 1811 = Kab. Mesuji
+),
+asg AS (                              -- assignment aktif di kabupaten terpilih
+    SELECT a.assignment_id,
+           a.survey_period_id,
+           a.assignment_status_alias,
+           a.level_3_name,
+           a.level_4_name,
+           a.level_6_full_code,
+           a.level_6_name
+    FROM tgr_fd68e454.base_table_assignment a
+    CROSS JOIN params p
+    WHERE a.is_active = 1
+      AND a.level_2_full_code = p.kab
+),
+ver AS (                              -- versi roster usaha paling baru per assignment
+    SELECT n.assignment_id,
+           MAX(n.assignment_date_modified) AS ad_max
+    FROM tgr_fd68e454.se2026_nested n
+    CROSS JOIN params p
+    WHERE n.level_2_full_code = p.kab
+    GROUP BY n.assignment_id
+),
+usa AS (                              -- roster usaha, hanya baris versi terbaru
+    SELECT n.assignment_id,
+           n.index1,
+           n.nama_usaha,
+           n.keberadaan_usaha_value,
+           n.keberadaan_usaha_label,
+           n.produk,
+           n.kbli_akhir,
+           n.kategori,
+           n.jenis_usaha_label,
+           n.jenis_usaha_value,
+           n.total_pendapatan,          -- R27c, blok tahunan
+           n.total_pengeluaran,         -- R26f, blok tahunan
+           n.total_pendapatan_bln,      -- R31c, blok bulanan
+           n.total_pengeluaran_bln      -- R30f, blok bulanan
+    FROM tgr_fd68e454.se2026_nested n
+    INNER JOIN ver v
+            ON v.assignment_id = n.assignment_id
+           AND v.ad_max        = n.assignment_date_modified
+)
+SELECT a.level_3_name                                   AS nama_kecamatan,
+       a.level_4_name                                   AS nama_desa,
+       a.level_6_full_code                              AS idsubsls,
+       a.level_6_name                                   AS nama_subsls,
+       u.nama_usaha                                     AS nama_usaha,
+       u.keberadaan_usaha_label                         AS status_keberadaan,
+       u.produk                                         AS produk_utama,
+       u.kbli_akhir                                     AS kbli,
+       u.total_pendapatan                               AS pendapatan_setahun,
+       u.total_pengeluaran                              AS pengeluaran_setahun,
+       u.total_pendapatan_bln                           AS pendapatan_sebulan,
+       u.total_pengeluaran_bln                          AS pengeluaran_sebulan,
+       a.assignment_status_alias                        AS status_assignment,
+       CONCAT('https://fasih-sm.bps.go.id/app/assignment/',
+              a.survey_period_id, '/', a.assignment_id) AS link_fasih
+FROM usa u
+INNER JOIN asg a
+        ON a.assignment_id = u.assignment_id
+WHERE TRIM(COALESCE(u.keberadaan_usaha_value, '')) IN ('1', '2')
+  AND (
+           LEFT(UPPER(TRIM(COALESCE(u.kategori, ''))), 1) = 'A'
+        OR LEFT(LPAD(TRIM(COALESCE(u.kbli_akhir, '')), 5, '0'), 2) IN ('01', '02', '03')
+        OR UPPER(TRIM(COALESCE(u.jenis_usaha_label, ''))) LIKE '%PERTANIAN%'
+        OR TRIM(COALESCE(u.jenis_usaha_value, '')) = '6'
+      )
+ORDER BY a.level_6_full_code, u.assignment_id, u.index1
+LIMIT 9000 OFFSET 0;
