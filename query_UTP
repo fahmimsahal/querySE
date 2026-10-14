@@ -1,5 +1,6 @@
 -- ============================================================================
 -- SE2026 — DAFTAR USAHA PERTANIAN (keberadaan: Ditemukan / Baru)
+-- + kolom nama_kk (root_table, versi terbaru per assignment)
 -- Granularitas : 1 baris = 1 usaha (se2026_nested, versi roster terbaru)
 -- Cakupan      : Kabupaten pada CTE params
 -- Definisi pertanian (GABUNGAN, salah satu terpenuhi):
@@ -10,6 +11,9 @@
 --   beroperasi lebih dari setahun; blok BULANAN (R30f/R31c) terisi untuk usaha
 --   yang beroperasi kurang dari setahun. Alur kuesioner yang menentukan — satu
 --   usaha hanya mengisi salah satu blok, blok lainnya kosong (normal).
+-- nama_kk: diambil dari root_table versi terbaru lewat LEFT JOIN (bukan
+--   INNER), agar usaha yang belum/tidak punya baris root_table tetap muncul
+--   di daftar (kolom nama_kk-nya kosong), bukannya ikut tersaring hilang.
 -- ============================================================================
 WITH params AS (                      -- >>> UBAH DI SINI SAJA <<<
     SELECT '1811' AS kab              -- 1811 = Kab. Mesuji
@@ -54,11 +58,28 @@ usa AS (                              -- roster usaha, hanya baris versi terbaru
     INNER JOIN ver v
             ON v.assignment_id = n.assignment_id
            AND v.ad_max        = n.assignment_date_modified
+),
+rv AS (                               -- versi root_table paling baru per assignment
+    SELECT r.assignment_id,
+           MAX(r.assignment_date_modified) AS ad_max
+    FROM tgr_fd68e454.root_table r
+    INNER JOIN asg g
+            ON g.assignment_id = r.assignment_id
+    GROUP BY r.assignment_id
+),
+kk AS (                               -- nama KK, hanya baris versi terbaru
+    SELECT r.assignment_id,
+           r.nama_kk
+    FROM tgr_fd68e454.root_table r
+    INNER JOIN rv
+            ON rv.assignment_id = r.assignment_id
+           AND rv.ad_max        = r.assignment_date_modified
 )
 SELECT a.level_3_name                                   AS nama_kecamatan,
        a.level_4_name                                   AS nama_desa,
        a.level_6_full_code                              AS idsubsls,
        a.level_6_name                                   AS nama_subsls,
+       k.nama_kk                                        AS nama_kk,
        u.nama_usaha                                     AS nama_usaha,
        u.keberadaan_usaha_label                         AS status_keberadaan,
        u.produk                                         AS produk_utama,
@@ -73,6 +94,8 @@ SELECT a.level_3_name                                   AS nama_kecamatan,
 FROM usa u
 INNER JOIN asg a
         ON a.assignment_id = u.assignment_id
+LEFT JOIN kk k
+        ON k.assignment_id = u.assignment_id
 WHERE TRIM(COALESCE(u.keberadaan_usaha_value, '')) IN ('1', '2')
   AND (
            LEFT(UPPER(TRIM(COALESCE(u.kategori, ''))), 1) = 'A'
