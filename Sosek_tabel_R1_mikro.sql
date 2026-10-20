@@ -42,7 +42,7 @@ kk_base AS (
   WHERE
     b.is_active = 1
     AND b.assignment_status_id = 2
-    AND b.assignment_status_alias IN ('APPROVED BY Pengawas','APPROVED BY Admin Kabupaten')
+    AND b.assignment_status_alias <> 'DRAFT'
     AND COALESCE(r.jenis_prelist, '') <> 'dummy'
     AND (
           r.jenis_prelist = 'keluarga'
