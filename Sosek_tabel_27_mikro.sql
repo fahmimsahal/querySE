@@ -3,7 +3,6 @@ Judul : Tabel 27. Tabel Frekuensi Penduduk Menurut Jenis Kelamin (Versi Mikro - 
 Tujuan : Menampilkan baris detail penduduk dengan jenis kelamin bernilai missing value / tidak valid
 Kategori : Mikro (Row-Level)
 Database/dialek : Fasih Data
-Pembuat : Ratih
 Tanggal : 2026-10-06
 */
 
@@ -23,13 +22,15 @@ WITH param_wilayah AS (
 /* ================================================================================= */
 
 select
-    b.level_1_full_code as kode_provinsi,
-    b.level_1_name as nama_provinsi,
-    b.level_2_full_code as kode_kabkot,
-    b.level_2_name as nama_kabkot,
+    b.level_1_full_code,
+    b.level_1_name,
+    b.level_2_full_code,
+    b.level_2_name,
     d.assignment_id,
     d.nama_dtsen,
-    d.jk_dtsen_value
+    d.jk_dtsen_value,
+    CONCAT('https://fasih-sm.bps.go.id/app/assignment/fd68e454-ba45-4b85-8205-f3bf777ded24/', d.assignment_id) AS link_fasih_sm,
+    NOW() AS running_time
 from tgr_fd68e454.nested_dtsen d
          inner join tgr_fd68e454.base_table_assignment b
                     on d.assignment_id = b.assignment_id
@@ -47,14 +48,22 @@ WHERE (
     )
   and b.is_active = 1
   and b.assignment_status_id = 2
-  and (b.assignment_status_alias = 'APPROVED BY Admin Kabupaten' OR b.assignment_status_alias = 'APPROVED BY Pengawas')
+  and (b.assignment_status_alias <> 'DRAFT')
   and coalesce(r.jenis_prelist, '') <> 'dummy'
-  and d.keberadaan_dtsen_value in (1, 5) -- keberadaan ditemukan + baru
+  and d.keberadaan_dtsen_value in (1, 3,4,5) -- keberadaan ditemukan + baru
   -- Kondisi filter khusus jenis kelamin yang bernilai missing value (NULL atau bukan 1 dan 2)
   and (
         d.jk_dtsen_value is null
         or cast(d.jk_dtsen_value as int) not in (1, 2)
     )
+  AND NOT EXISTS (
+        SELECT 1
+        FROM tgr_fd68e454.base_table_remark x
+        WHERE x.assignment_id = d.assignment_id
+          AND x.index1 = d.index1
+          AND x.data_key IN ('jk_dtsen_value')
+          AND (lower(trim(x.comment)) LIKE '#dc%00' OR lower(trim(x.comment)) LIKE '#0' )
+    )
 order by
-    b.level_1_full_code asc,
-    b.level_2_full_code asc;
+    b.level_1_full_code,
+    b.level_2_full_code;
